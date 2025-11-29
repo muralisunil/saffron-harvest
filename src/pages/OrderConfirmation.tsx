@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, Truck, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,19 +7,44 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { OrderDetails } from "@/types/product";
+import { useCart } from "@/context/CartContext";
 
 const OrderConfirmation = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { clearCart } = useCart();
   const [order, setOrder] = useState<OrderDetails | null>(null);
 
   useEffect(() => {
-    const savedOrder = localStorage.getItem("lastOrder");
-    if (savedOrder) {
-      setOrder(JSON.parse(savedOrder));
+    const sessionId = searchParams.get("session_id");
+    
+    // Check if this is a Stripe success redirect
+    if (sessionId) {
+      const pendingOrder = localStorage.getItem("pendingOrder");
+      if (pendingOrder) {
+        const orderData = JSON.parse(pendingOrder);
+        setOrder(orderData);
+        
+        // Move to lastOrder and clear pending
+        localStorage.setItem("lastOrder", pendingOrder);
+        localStorage.removeItem("pendingOrder");
+        
+        // Clear the cart
+        clearCart();
+      } else {
+        // No pending order found, redirect to home
+        navigate("/");
+      }
     } else {
-      navigate("/");
+      // Check for a regular order (non-Stripe flow)
+      const savedOrder = localStorage.getItem("lastOrder");
+      if (savedOrder) {
+        setOrder(JSON.parse(savedOrder));
+      } else {
+        navigate("/");
+      }
     }
-  }, [navigate]);
+  }, [navigate, searchParams, clearCart]);
 
   if (!order) return null;
 

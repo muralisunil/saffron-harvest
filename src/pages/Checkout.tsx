@@ -9,10 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/CartContext";
 import { OrderDetails } from "@/types/product";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, getCartTotal, clearCart } = useCart();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -28,28 +33,52 @@ const Checkout = () => {
   const shipping = subtotal > 500 ? 0 : 50;
   const total = subtotal + shipping;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
 
-    const order: OrderDetails = {
-      orderId: `ORD${Date.now()}`,
-      items,
-      subtotal,
-      shipping,
-      total,
-      customerName: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      city: formData.city,
-      state: formData.state,
-      pincode: formData.pincode,
-      orderDate: new Date(),
-    };
+    try {
+      // Call Stripe checkout edge function
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          cartItems: items,
+          customerInfo: formData,
+        },
+      });
 
-    localStorage.setItem("lastOrder", JSON.stringify(order));
-    clearCart();
-    navigate("/order-confirmation");
+      if (error) throw error;
+
+      if (data?.url) {
+        // Save order info before redirecting
+        const order: OrderDetails = {
+          orderId: `ORD${Date.now()}`,
+          items,
+          subtotal,
+          shipping,
+          total,
+          customerName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          orderDate: new Date(),
+        };
+        localStorage.setItem("pendingOrder", JSON.stringify(order));
+        
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Error creating checkout:", error);
+      toast({
+        title: "Checkout Error",
+        description: "Failed to process checkout. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,8 +240,15 @@ const Checkout = () => {
                     <span className="text-primary">₹{total}</span>
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg">
-                    Place Order
+                  <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Proceed to Payment"
+                    )}
                   </Button>
 
                   <p className="text-xs text-center text-muted-foreground">
