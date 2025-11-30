@@ -16,6 +16,8 @@ export interface Product {
   isBestSeller?: boolean;
   discount?: number;
   originalPrice?: number;
+  cuisine?: string;
+  dietaryTags?: string[];
 }
 
 export interface CartItem {

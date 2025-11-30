@@ -14,7 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      list_items: {
+        Row: {
+          added_at: string
+          id: string
+          list_id: string
+          product_id: string
+          variant_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          list_id: string
+          product_id: string
+          variant_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          list_id?: string
+          product_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          id: string
+          is_wishlist: boolean
+          name: string
+          share_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_wishlist?: boolean
+          name: string
+          share_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_wishlist?: boolean
+          name?: string
+          share_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

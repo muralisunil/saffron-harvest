@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/context/CartContext";
 import { products } from "@/data/products";
 import { ProductVariant } from "@/types/product";
+import AddToListButton from "@/components/AddToListButton";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -170,15 +171,18 @@ const ProductDetail = () => {
             </div>
 
             {/* Add to Cart */}
-            <Button
-              onClick={handleAddToCart}
-              size="lg"
-              className="w-full"
-              disabled={selectedVariant.stock === 0}
-            >
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              {selectedVariant.stock === 0 ? "Out of Stock" : "Add to Cart"}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleAddToCart}
+                size="lg"
+                className="flex-1"
+                disabled={selectedVariant.stock === 0}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                {selectedVariant.stock === 0 ? "Out of Stock" : "Add to Cart"}
+              </Button>
+              <AddToListButton productId={product.id} variantId={selectedVariant.id} variant="button" />
+            </div>
 
             {/* Product Info */}
             <div className="border-t pt-6 space-y-3">

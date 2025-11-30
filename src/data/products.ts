@@ -13,6 +13,8 @@ export const products: Product[] = [
       { id: "1-200", size: "200gms", price: 475, stock: 35 },
     ],
     isBestSeller: true,
+    cuisine: "Pan-Indian",
+    dietaryTags: ["Vegan"],
   },
   {
     id: "2",
@@ -29,6 +31,8 @@ export const products: Product[] = [
     isBestSeller: true,
     discount: 10,
     originalPrice: 172,
+    cuisine: "Pan-Indian",
+    dietaryTags: ["Vegan", "Organic"],
   },
   {
     id: "3",
@@ -42,6 +46,8 @@ export const products: Product[] = [
       { id: "3-500", size: "500gms", price: 265, stock: 45 },
     ],
     isBestSeller: true,
+    cuisine: "North Indian",
+    dietaryTags: ["Vegetarian"],
   },
   {
     id: "4",
@@ -70,6 +76,8 @@ export const products: Product[] = [
     isBestSeller: true,
     discount: 15,
     originalPrice: 73,
+    cuisine: "North Indian",
+    dietaryTags: ["Vegan"],
   },
   {
     id: "6",
@@ -83,6 +91,8 @@ export const products: Product[] = [
       { id: "6-5000", size: "5kg", price: 945, stock: 40 },
     ],
     isBestSeller: true,
+    cuisine: "North Indian",
+    dietaryTags: ["Vegan", "Gluten-Free"],
   },
   {
     id: "7",
@@ -147,6 +157,8 @@ export const products: Product[] = [
       { id: "11-400", size: "400gms", price: 105, stock: 50 },
     ],
     isBestSeller: true,
+    cuisine: "North Indian",
+    dietaryTags: ["Vegan"],
   },
   {
     id: "12",
@@ -173,6 +185,8 @@ export const products: Product[] = [
     variants: [
       { id: "13-300", size: "300gms", price: 78, stock: 60 },
     ],
+    cuisine: "South Indian",
+    dietaryTags: ["Vegetarian"],
   },
   {
     id: "14",

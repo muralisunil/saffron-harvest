@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import AddToListButton from "./AddToListButton";
 
 interface ProductCardProps {
   product: Product;
@@ -26,6 +27,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
             alt={product.name}
             className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
           />
+          <div className="absolute top-3 right-3 z-10" onClick={(e) => e.preventDefault()}>
+            <AddToListButton productId={product.id} variantId={baseVariant.id} variant="icon" />
+          </div>
           {product.isBestSeller && (
             <Badge className="absolute top-3 left-3 bg-accent text-accent-foreground shadow-gold">
               <Award className="h-3 w-3 mr-1" />
@@ -33,7 +37,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </Badge>
           )}
           {product.discount && (
-            <Badge className="absolute top-3 right-3 bg-sale text-sale-foreground">
+            <Badge className="absolute top-14 right-3 bg-sale text-sale-foreground">
               {product.discount}% OFF
             </Badge>
           )}
