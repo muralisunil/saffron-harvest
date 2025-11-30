@@ -1,16 +1,53 @@
 import { Link } from "react-router-dom";
-import { Award, Tag, ShoppingBag, ArrowRight, Star, Package, Truck } from "lucide-react";
+import { Award, Tag, ShoppingBag, ArrowRight, Star, Package, Truck, ChevronRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { products } from "@/data/products";
 
+type ViewMode = "standard" | "cuisine" | "curated";
+
 const Index = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>("standard");
+  
   const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 6);
   const specialDeals = products.filter((p) => p.discount).slice(0, 4);
+  
+  // Cuisine-based groupings
+  const cuisineGroups = {
+    "North Indian Essentials": products.filter(p => 
+      ["Staples", "Spices", "Dairy"].includes(p.category)
+    ).slice(0, 8),
+    "South Indian Favorites": products.filter(p => 
+      p.category === "Instant Food" || p.brand === "MTR"
+    ).slice(0, 8),
+    "Snack Time Delights": products.filter(p => 
+      p.category === "Snacks"
+    ).slice(0, 8),
+    "Beverage Station": products.filter(p => 
+      p.category === "Beverages"
+    ).slice(0, 8),
+  };
+
+  // Curated collections
+  const curatedCollections = {
+    "Quick Meals": products.filter(p => 
+      p.category === "Instant Food"
+    ).slice(0, 8),
+    "Pantry Staples": products.filter(p => 
+      ["Staples", "Spices"].includes(p.category)
+    ).slice(0, 8),
+    "Festive Essentials": products.filter(p => 
+      p.isBestSeller || ["Dairy", "Snacks"].includes(p.category)
+    ).slice(0, 8),
+    "Daily Needs": products.filter(p => 
+      ["Dairy", "Beverages"].includes(p.category)
+    ).slice(0, 8),
+  };
   
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -129,47 +166,203 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Best Sellers Section */}
+        {/* Product Discovery Section with View Toggles */}
         <section className="container py-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="space-y-16"
+            className="space-y-12"
           >
-            <div className="max-w-3xl mx-auto text-center space-y-4">
+            <div className="max-w-3xl mx-auto text-center space-y-6">
               <h2 className="text-5xl md:text-6xl font-display font-bold tracking-tight">
-                Customer favorites
+                Discover your favorites
               </h2>
               <p className="text-xl text-muted-foreground">
-                Discover what makes our customers keep coming back
+                Explore our products in the way that suits you best
               </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {bestSellers.map((product, index) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ y: -8 }}
+              
+              {/* View Toggle Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+                <Button
+                  onClick={() => setViewMode("standard")}
+                  variant={viewMode === "standard" ? "default" : "outline"}
+                  size="lg"
+                  className="px-8"
                 >
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
+                  Standard
+                </Button>
+                <Button
+                  onClick={() => setViewMode("cuisine")}
+                  variant={viewMode === "cuisine" ? "default" : "outline"}
+                  size="lg"
+                  className="px-8"
+                >
+                  Cuisine Explorer
+                </Button>
+                <Button
+                  onClick={() => setViewMode("curated")}
+                  variant={viewMode === "curated" ? "default" : "outline"}
+                  size="lg"
+                  className="px-8"
+                >
+                  Curated Collections
+                </Button>
+              </div>
             </div>
 
-            <div className="text-center">
-              <Link to="/products">
-                <Button size="lg" variant="outline" className="group px-8">
-                  View All Products
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-            </div>
+            {/* Standard View */}
+            {viewMode === "standard" && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-16"
+              >
+                <div className="space-y-8">
+                  <h3 className="text-3xl font-display font-bold">Customer favorites</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                    {bestSellers.map((product, index) => (
+                      <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        whileHover={{ y: -8 }}
+                      >
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <Link to="/products">
+                    <Button size="lg" variant="outline" className="group px-8">
+                      View All Products
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Cuisine Explorer View */}
+            {viewMode === "cuisine" && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-12"
+              >
+                {Object.entries(cuisineGroups).map(([cuisineName, cuisineProducts], groupIndex) => (
+                  <div key={cuisineName} className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-3xl font-display font-bold">{cuisineName}</h3>
+                      <Link to="/products">
+                        <Button variant="ghost" size="sm" className="group">
+                          View All
+                          <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    <ScrollArea className="w-full">
+                      <div className="flex gap-6 pb-4">
+                        {cuisineProducts.map((product, index) => (
+                          <motion.div
+                            key={product.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: groupIndex * 0.1 + index * 0.05 }}
+                            className="flex-none w-[200px]"
+                            whileHover={{ y: -8 }}
+                          >
+                            <ProductCard product={product} />
+                          </motion.div>
+                        ))}
+                        
+                        {/* View All Card */}
+                        <Link to="/products" className="flex-none w-[200px]">
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: groupIndex * 0.1 + cuisineProducts.length * 0.05 }}
+                            className="h-full min-h-[300px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border hover:border-primary transition-colors group cursor-pointer"
+                            whileHover={{ y: -8 }}
+                          >
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                              <ChevronRight className="h-6 w-6 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium">View All</span>
+                          </motion.div>
+                        </Link>
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Curated Collections View */}
+            {viewMode === "curated" && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-12"
+              >
+                {Object.entries(curatedCollections).map(([collectionName, collectionProducts], groupIndex) => (
+                  <div key={collectionName} className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-3xl font-display font-bold">{collectionName}</h3>
+                      <Link to="/products">
+                        <Button variant="ghost" size="sm" className="group">
+                          View All
+                          <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    <ScrollArea className="w-full">
+                      <div className="flex gap-6 pb-4">
+                        {collectionProducts.map((product, index) => (
+                          <motion.div
+                            key={product.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: groupIndex * 0.1 + index * 0.05 }}
+                            className="flex-none w-[200px]"
+                            whileHover={{ y: -8 }}
+                          >
+                            <ProductCard product={product} />
+                          </motion.div>
+                        ))}
+                        
+                        {/* View All Card */}
+                        <Link to="/products" className="flex-none w-[200px]">
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: groupIndex * 0.1 + collectionProducts.length * 0.05 }}
+                            className="h-full min-h-[300px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border hover:border-primary transition-colors group cursor-pointer"
+                            whileHover={{ y: -8 }}
+                          >
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                              <ChevronRight className="h-6 w-6 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium">View All</span>
+                          </motion.div>
+                        </Link>
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </div>
+                ))}
+              </motion.div>
+            )}
           </motion.div>
         </section>
 
