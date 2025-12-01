@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Award } from "lucide-react";
 import Header from "@/components/Header";
@@ -21,6 +21,16 @@ const ProductDetail = () => {
     product?.variants[0]!
   );
   const [quantity, setQuantity] = useState(1);
+
+  // Track recently viewed products
+  useEffect(() => {
+    if (product) {
+      const viewed = localStorage.getItem("recentlyViewed");
+      const viewedIds = viewed ? JSON.parse(viewed) : [];
+      const updatedViewed = [product.id, ...viewedIds.filter((vid: string) => vid !== product.id)].slice(0, 8);
+      localStorage.setItem("recentlyViewed", JSON.stringify(updatedViewed));
+    }
+  }, [product]);
 
   if (!product) {
     return (
