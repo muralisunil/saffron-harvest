@@ -77,10 +77,28 @@ const Index = () => {
       <Header />
 
       <main className="flex-1">
-        {/* Hero Carousel */}
-        <section className="bg-muted/30">
+        {/* Hero Banner with Overlaid Cards */}
+        <section className="relative bg-muted/30">
           <div className="container py-4">
             <HeroCarousel />
+          </div>
+          
+          {/* Overlaid Category Cards */}
+          <div className="container relative -mt-24 pb-8 z-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.map((category) => (
+                <Link key={category.name} to="/products">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all cursor-pointer group bg-card">
+                    <div className={`h-32 bg-gradient-to-br ${category.color} flex items-center justify-center`}>
+                      <category.icon className="h-16 w-16 text-foreground/60 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="p-4 bg-card">
+                      <h3 className="font-semibold text-sm">{category.name}</h3>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -105,25 +123,6 @@ const Index = () => {
               </div>
             </Card>
           </Link>
-        </section>
-
-        {/* Category Cards */}
-        <section className="container py-8">
-          <h2 className="text-2xl font-bold mb-6">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((category) => (
-              <Link key={category.name} to="/products">
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
-                  <div className={`h-32 bg-gradient-to-br ${category.color} flex items-center justify-center`}>
-                    <category.icon className="h-16 w-16 text-foreground/60 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-sm">{category.name}</h3>
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
         </section>
 
         {/* Today's Deals */}
