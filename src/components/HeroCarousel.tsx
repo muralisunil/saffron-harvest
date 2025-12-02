@@ -38,11 +38,11 @@ const HeroCarousel = () => {
   const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <div className="relative w-full h-[500px] md:h-[60vh] overflow-hidden rounded-xl">
+    <div className="relative w-full h-[400px] overflow-hidden rounded-lg">
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 transition-opacity duration-500 ${
+          className={`absolute inset-0 transition-opacity duration-1000 ${
             index === current ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -52,18 +52,17 @@ const HeroCarousel = () => {
               alt={slide.title}
               className="object-cover w-full h-full"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
-              <h2 className="text-4xl md:text-6xl font-display font-bold text-white mb-4 animate-fade-in">
+              <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-3 leading-tight">
                 {slide.title}
               </h2>
-              <p className="text-lg md:text-xl text-white/90 mb-8 animate-slide-up">
+              <p className="text-base md:text-lg text-white/90 mb-6">
                 {slide.subtitle}
               </p>
-              <div className="animate-scale-in">
+              <div>
                 <Link to="/products">
-                  <Button size="lg" className="shadow-elevated">
+                  <Button size="lg" className="shadow-md hover:shadow-lg transition-shadow">
                     Shop Now
                   </Button>
                 </Link>

@@ -34,10 +34,10 @@ const Index = () => {
   const instantFood = products.filter(p => p.category === "Instant Food").slice(0, 4);
   
   const categories = [
-    { name: "Staples & Grains", icon: Package, color: "from-amber-500/20 to-orange-500/20" },
-    { name: "Snacks", icon: ShoppingBag, color: "from-red-500/20 to-pink-500/20" },
-    { name: "Beverages", icon: Sparkles, color: "from-blue-500/20 to-cyan-500/20" },
-    { name: "Instant Food", icon: Tag, color: "from-green-500/20 to-emerald-500/20" },
+    { name: "Staples & Grains", icon: Package, iconColor: "text-amber-600" },
+    { name: "Snacks", icon: ShoppingBag, iconColor: "text-rose-600" },
+    { name: "Beverages", icon: Sparkles, iconColor: "text-blue-600" },
+    { name: "Instant Food", icon: Tag, iconColor: "text-emerald-600" },
   ];
 
   // Cuisine-based groupings
@@ -78,22 +78,22 @@ const Index = () => {
 
       <main className="flex-1">
         {/* Hero Banner with Overlaid Cards */}
-        <section className="relative bg-muted/30 pb-8">
-          <div className="container py-4">
+        <section className="relative bg-background">
+          <div className="container pt-6 pb-4">
             <HeroCarousel />
           </div>
           
           {/* Overlaid Category Cards */}
-          <div className="container relative -mt-48 md:-mt-56 z-10">
+          <div className="container relative -mt-32 md:-mt-36 pb-12 z-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {categories.map((category) => (
                 <Link key={category.name} to="/products">
-                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group bg-card shadow-xl">
-                    <div className={`h-32 bg-gradient-to-br ${category.color} flex items-center justify-center`}>
-                      <category.icon className="h-16 w-16 text-foreground/60 group-hover:scale-110 transition-transform" />
+                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group bg-card border-border/50 shadow-md">
+                    <div className="h-32 bg-card flex items-center justify-center">
+                      <category.icon className={`h-12 w-12 ${category.iconColor} group-hover:scale-110 transition-transform duration-300`} />
                     </div>
-                    <div className="p-4 bg-card">
-                      <h3 className="font-semibold text-sm">{category.name}</h3>
+                    <div className="p-4 border-t border-border/30">
+                      <h3 className="font-semibold text-sm text-center">{category.name}</h3>
                     </div>
                   </Card>
                 </Link>
@@ -103,20 +103,20 @@ const Index = () => {
         </section>
 
         {/* Promotional Banner */}
-        <section className="container py-6">
+        <section className="container py-8">
           <Link to="/products">
-            <Card className="overflow-hidden bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 hover:shadow-lg transition-shadow cursor-pointer group">
-              <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <Card className="overflow-hidden bg-muted/30 hover:shadow-md transition-all duration-300 cursor-pointer group border-border/50">
+              <div className="p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex-1 text-center md:text-left">
-                  <Badge className="mb-3 bg-primary">Limited Time Offer</Badge>
-                  <h3 className="text-2xl md:text-3xl font-bold mb-2">
+                  <Badge className="mb-3 bg-sale text-white">Limited Time Offer</Badge>
+                  <h3 className="text-2xl md:text-3xl font-display font-bold mb-2">
                     Up to 50% off on Selected Items
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-base">
                     Don't miss out on amazing deals across all categories
                   </p>
                 </div>
-                <Button size="lg" className="group-hover:scale-105 transition-transform">
+                <Button size="lg" className="shadow-sm group-hover:shadow-md transition-all duration-300">
                   Shop Now
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -127,8 +127,8 @@ const Index = () => {
 
         {/* Today's Deals */}
         <section className="container py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Today's Deals</h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-display font-bold">Today's Deals</h2>
             <Link to="/products">
               <Button variant="ghost" size="sm">
                 See all deals
@@ -136,7 +136,7 @@ const Index = () => {
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6">
             {specialDeals.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -145,11 +145,11 @@ const Index = () => {
 
         {/* View Mode Toggle Section */}
         <section className="container py-8">
-          <div className="bg-muted/50 rounded-lg p-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+          <div className="bg-muted/30 rounded-lg p-8 border border-border/50">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
               <div>
-                <h2 className="text-2xl font-bold mb-2">Explore Products Your Way</h2>
-                <p className="text-muted-foreground">Choose how you'd like to browse</p>
+                <h2 className="text-2xl md:text-3xl font-display font-bold mb-2">Explore Products Your Way</h2>
+                <p className="text-muted-foreground text-base">Choose how you'd like to browse</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
