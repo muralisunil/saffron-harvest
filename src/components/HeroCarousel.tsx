@@ -38,7 +38,7 @@ const HeroCarousel = () => {
   const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <div className="relative w-full aspect-[21/9] overflow-hidden rounded-xl">
+    <div className="relative w-full h-[500px] md:h-[60vh] overflow-hidden rounded-xl">
       {slides.map((slide, index) => (
         <div
           key={index}
@@ -53,6 +53,7 @@ const HeroCarousel = () => {
               className="object-cover w-full h-full"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
               <h2 className="text-4xl md:text-6xl font-display font-bold text-white mb-4 animate-fade-in">
                 {slide.title}

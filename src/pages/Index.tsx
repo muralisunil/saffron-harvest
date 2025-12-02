@@ -78,17 +78,17 @@ const Index = () => {
 
       <main className="flex-1">
         {/* Hero Banner with Overlaid Cards */}
-        <section className="relative bg-muted/30">
+        <section className="relative bg-muted/30 pb-8">
           <div className="container py-4">
             <HeroCarousel />
           </div>
           
           {/* Overlaid Category Cards */}
-          <div className="container relative -mt-24 pb-8 z-10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="container relative -mt-48 md:-mt-56 z-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {categories.map((category) => (
                 <Link key={category.name} to="/products">
-                  <Card className="overflow-hidden hover:shadow-xl transition-all cursor-pointer group bg-card">
+                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group bg-card shadow-xl">
                     <div className={`h-32 bg-gradient-to-br ${category.color} flex items-center justify-center`}>
                       <category.icon className="h-16 w-16 text-foreground/60 group-hover:scale-110 transition-transform" />
                     </div>
