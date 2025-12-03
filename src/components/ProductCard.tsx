@@ -2,7 +2,7 @@ import { Product } from "@/types/product";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Award, Star } from "lucide-react";
+import { ShoppingCart, Award, Star, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import AddToListButton from "./AddToListButton";
@@ -11,9 +11,10 @@ import { motion } from "framer-motion";
 interface ProductCardProps {
   product: Product;
   index?: number;
+  onQuickView?: (product: Product) => void;
 }
 
-const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
+const ProductCard = ({ product, index = 0, onQuickView }: ProductCardProps) => {
   const { addItem } = useCart();
   const baseVariant = product.variants[0];
   const displayPrice = product.discount 
@@ -53,6 +54,21 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               <Badge className="absolute bottom-3 left-3 bg-gradient-to-r from-rose-500 to-red-500 text-white border-0 shadow-lg text-sm font-bold px-3">
                 {product.discount}% OFF
               </Badge>
+            )}
+
+            {/* Quick View Button */}
+            {onQuickView && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-background/90 backdrop-blur-sm hover:bg-background"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onQuickView(product);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
             )}
           </div>
         </Link>

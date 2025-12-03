@@ -7,10 +7,20 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useState, useEffect } from "react";
 
 const Header = () => {
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -20,7 +30,11 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      scrolled 
+        ? "bg-background/95 backdrop-blur-md shadow-md border-b" 
+        : "bg-transparent border-transparent"
+    }`}>
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex flex-col">
           <h1 className="text-2xl font-display font-bold bg-gradient-hero bg-clip-text text-transparent">
