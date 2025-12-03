@@ -38,12 +38,12 @@ const HeroCarousel = () => {
   const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <div className="relative w-full h-[400px] overflow-hidden rounded-lg">
+    <div className="relative w-full h-[480px] md:h-[520px] overflow-hidden rounded-2xl shadow-2xl">
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === current ? "opacity-100" : "opacity-0"
+          className={`absolute inset-0 transition-all duration-1000 ease-out ${
+            index === current ? "opacity-100 scale-100" : "opacity-0 scale-105"
           }`}
         >
           <div className="relative h-full">
@@ -52,50 +52,63 @@ const HeroCarousel = () => {
               alt={slide.title}
               className="object-cover w-full h-full"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
-            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
-              <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-3 leading-tight">
-                {slide.title}
-              </h2>
-              <p className="text-base md:text-lg text-white/90 mb-6">
-                {slide.subtitle}
-              </p>
-              <div>
-                <Link to="/products">
-                  <Button size="lg" className="shadow-md hover:shadow-lg transition-shadow">
-                    Shop Now
-                  </Button>
-                </Link>
+            {/* Sophisticated multi-layer gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            
+            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 lg:px-20 max-w-3xl">
+              <div className="space-y-6">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white leading-[1.1] tracking-tight drop-shadow-lg">
+                  {slide.title}
+                </h2>
+                <p className="text-lg md:text-xl text-white/95 max-w-lg leading-relaxed">
+                  {slide.subtitle}
+                </p>
+                <div className="pt-2">
+                  <Link to="/products">
+                    <Button 
+                      size="lg" 
+                      className="h-14 px-8 text-base font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-primary hover:bg-primary/90"
+                    >
+                      Shop Now
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
       ))}
 
+      {/* Elegant navigation buttons */}
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white"
+        className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 border border-white/30 text-white transition-all duration-300"
         onClick={prev}
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-6 w-6" />
       </Button>
 
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white"
+        className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 border border-white/30 text-white transition-all duration-300"
         onClick={next}
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-6 w-6" />
       </Button>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+      {/* Refined indicator dots */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
         {slides.map((_, index) => (
           <button
             key={index}
-            className={`h-2 rounded-full transition-all ${
-              index === current ? "w-8 bg-white" : "w-2 bg-white/50"
+            className={`h-2.5 rounded-full transition-all duration-500 ${
+              index === current 
+                ? "w-10 bg-white shadow-lg" 
+                : "w-2.5 bg-white/40 hover:bg-white/60"
             }`}
             onClick={() => setCurrent(index)}
           />
