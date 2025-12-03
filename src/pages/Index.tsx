@@ -8,9 +8,12 @@ import HeroSection from "@/components/home/HeroSection";
 import CategoryCards from "@/components/home/CategoryCards";
 import PromoBanner from "@/components/home/PromoBanner";
 import ProductSection from "@/components/home/ProductSection";
+import DealsSection from "@/components/home/DealsSection";
+import QuickViewModal from "@/components/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { products } from "@/data/products";
+import { Product } from "@/types/product";
 import { motion } from "framer-motion";
 
 type ViewMode = "standard" | "cuisine" | "curated";
@@ -18,6 +21,13 @@ type ViewMode = "standard" | "cuisine" | "curated";
 const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("standard");
   const [recentlyViewed, setRecentlyViewed] = useState<typeof products>([]);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const handleQuickView = (product: Product) => {
+    setQuickViewProduct(product);
+    setQuickViewOpen(true);
+  };
 
   useEffect(() => {
     const viewed = localStorage.getItem("recentlyViewed");
@@ -89,9 +99,9 @@ const Index = () => {
           <PromoBanner />
         </section>
 
-        {/* Today's Deals */}
+        {/* Today's Hot Deals with Countdown Timers */}
         <section className="container">
-          <ProductSection title="Today's Deals" products={specialDeals} />
+          <DealsSection onQuickView={handleQuickView} />
         </section>
 
         {/* View Mode Toggle Section */}
@@ -257,6 +267,13 @@ const Index = () => {
       </main>
 
       <Footer />
+
+      {/* Quick View Modal */}
+      <QuickViewModal 
+        product={quickViewProduct} 
+        open={quickViewOpen} 
+        onOpenChange={setQuickViewOpen} 
+      />
     </div>
   );
 };

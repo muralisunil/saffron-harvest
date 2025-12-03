@@ -5,7 +5,6 @@ import hero1 from "@/assets/hero-1.jpg";
 import hero2 from "@/assets/hero-2.jpg";
 import hero3 from "@/assets/hero-3.jpg";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 
 const slides = [
   {
@@ -40,67 +39,61 @@ const HeroSection = () => {
 
   return (
     <div className="relative w-full h-[550px] md:h-[600px] overflow-hidden">
-      <AnimatePresence mode="wait">
-        {slides.map((slide, index) => (
-          index === current && (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-0"
-            >
-              <div className="relative h-full">
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="object-cover w-full h-full"
-                />
-                {/* Extended gradient that bleeds into page */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
-                
-                <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 lg:px-24 max-w-4xl">
-                  <motion.div 
-                    className="space-y-6"
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                  >
-                    <h1 className="text-4xl md:text-5xl lg:text-7xl font-display font-bold text-white leading-[1.05] tracking-tight">
-                      {slide.title}
-                    </h1>
-                    <p className="text-lg md:text-xl text-white/90 max-w-xl leading-relaxed">
-                      {slide.subtitle}
-                    </p>
-                    <div className="pt-4 flex gap-4">
-                      <Link to="/products">
-                        <Button 
-                          size="lg" 
-                          className="h-14 px-10 text-base font-semibold shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105 bg-primary hover:bg-primary/90"
-                        >
-                          Shop Now
-                          <ChevronRight className="ml-2 h-5 w-5" />
-                        </Button>
-                      </Link>
-                      <Link to="/products">
-                        <Button 
-                          size="lg" 
-                          variant="outline"
-                          className="h-14 px-8 text-base font-semibold bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 transition-all duration-300"
-                        >
-                          View Deals
-                        </Button>
-                      </Link>
-                    </div>
-                  </motion.div>
+      {/* Simple crossfade - all slides rendered, opacity controlled */}
+      {slides.map((slide, index) => (
+        <div
+          key={index}
+          className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+            index === current ? "opacity-100 z-10" : "opacity-0 z-0"
+          }`}
+        >
+          <div className="relative h-full">
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="object-cover w-full h-full"
+            />
+            {/* Extended gradient that bleeds into page */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+            
+            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 lg:px-24 max-w-4xl">
+              <div 
+                className={`space-y-6 transition-all duration-500 delay-200 ${
+                  index === current ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                }`}
+              >
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-display font-bold text-white leading-[1.05] tracking-tight">
+                  {slide.title}
+                </h1>
+                <p className="text-lg md:text-xl text-white/90 max-w-xl leading-relaxed">
+                  {slide.subtitle}
+                </p>
+                <div className="pt-4 flex gap-4">
+                  <Link to="/products">
+                    <Button 
+                      size="lg" 
+                      className="h-14 px-10 text-base font-semibold shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105 bg-primary hover:bg-primary/90"
+                    >
+                      Shop Now
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link to="/products">
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="h-14 px-8 text-base font-semibold bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 transition-all duration-300"
+                    >
+                      View Deals
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            </motion.div>
-          )
-        ))}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* Navigation buttons */}
       <Button
