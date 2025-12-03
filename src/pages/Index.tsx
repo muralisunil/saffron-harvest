@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ShoppingBag, Tag, Sparkles, Package, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import HeroCarousel from "@/components/HeroCarousel";
+import HeroSection from "@/components/home/HeroSection";
+import CategoryCards from "@/components/home/CategoryCards";
+import PromoBanner from "@/components/home/PromoBanner";
+import ProductSection from "@/components/home/ProductSection";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { products } from "@/data/products";
+import { motion } from "framer-motion";
 
 type ViewMode = "standard" | "cuisine" | "curated";
 
@@ -33,13 +35,6 @@ const Index = () => {
   const beverages = products.filter(p => p.category === "Beverages").slice(0, 4);
   const instantFood = products.filter(p => p.category === "Instant Food").slice(0, 4);
   
-  const categories = [
-    { name: "Staples & Grains", icon: Package, gradient: "from-amber-500 to-orange-600", bgGlow: "bg-amber-500/10" },
-    { name: "Snacks", icon: ShoppingBag, gradient: "from-rose-500 to-pink-600", bgGlow: "bg-rose-500/10" },
-    { name: "Beverages", icon: Sparkles, gradient: "from-blue-500 to-indigo-600", bgGlow: "bg-blue-500/10" },
-    { name: "Instant Food", icon: Tag, gradient: "from-emerald-500 to-teal-600", bgGlow: "bg-emerald-500/10" },
-  ];
-
   // Cuisine-based groupings
   const cuisineGroups = {
     "North Indian Essentials": products.filter(p => 
@@ -77,144 +72,93 @@ const Index = () => {
       <Header />
 
       <main className="flex-1">
-        {/* Hero Banner */}
-        <section className="relative bg-gradient-to-b from-muted/30 to-background">
-          <div className="container pt-8 pb-6">
-            <HeroCarousel />
-          </div>
+        {/* Hero Section - Full bleed with gradient extending to page */}
+        <section className="relative">
+          <HeroSection />
+          {/* Gradient continuation for seamless blend */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-background pointer-events-none" />
         </section>
 
-        {/* Category Cards - Elegant Grid */}
-        <section className="container -mt-20 md:-mt-24 relative z-10 pb-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {categories.map((category) => (
-              <Link key={category.name} to="/products">
-                <Card className={`overflow-hidden cursor-pointer group relative border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 ${category.bgGlow}`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-card via-card to-muted/50 opacity-95" />
-                  <div className="relative p-6 md:p-8">
-                    <div className={`w-16 h-16 md:w-20 md:h-20 mx-auto rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
-                      <category.icon className="h-8 w-8 md:h-10 md:w-10 text-white" />
-                    </div>
-                    <h3 className="font-bold text-base md:text-lg text-center mt-5 text-foreground group-hover:text-primary transition-colors duration-300">
-                      {category.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground text-center mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      Shop now →
-                    </p>
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
+        {/* Category Cards - Overlapping hero */}
+        <section className="container relative z-10 -mt-24 md:-mt-28 pb-16">
+          <CategoryCards />
         </section>
 
-        {/* Promotional Banner - Premium Design */}
-        <section className="container py-6">
-          <Link to="/products">
-            <Card className="overflow-hidden relative cursor-pointer group border-0 shadow-xl hover:shadow-2xl transition-all duration-500">
-              {/* Gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/80" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
-              
-              <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex-1 text-center md:text-left">
-                  <Badge className="mb-4 bg-white/20 text-white border-white/30 backdrop-blur-sm text-sm px-4 py-1">
-                    Limited Time Offer
-                  </Badge>
-                  <h3 className="text-3xl md:text-4xl font-display font-bold mb-3 text-white leading-tight">
-                    Up to 50% off on Selected Items
-                  </h3>
-                  <p className="text-white/80 text-lg">
-                    Don't miss out on amazing deals across all categories
-                  </p>
-                </div>
-                <Button 
-                  size="lg" 
-                  variant="secondary"
-                  className="h-14 px-8 text-base font-semibold shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 bg-white text-primary hover:bg-white/90"
-                >
-                  Shop Now
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </div>
-            </Card>
-          </Link>
+        {/* Promotional Banner */}
+        <section className="container py-8">
+          <PromoBanner />
         </section>
 
         {/* Today's Deals */}
-        <section className="container py-12">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-display font-bold">Today's Deals</h2>
-              <p className="text-muted-foreground mt-1">Handpicked savings just for you</p>
-            </div>
-            <Link to="/products">
-              <Button variant="outline" size="sm" className="group">
-                See all deals
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6">
-            {specialDeals.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <section className="container">
+          <ProductSection title="Today's Deals" products={specialDeals} />
         </section>
 
         {/* View Mode Toggle Section */}
         <section className="container py-8">
-          <div className="bg-muted/30 rounded-lg p-8 border border-border/50">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
+          <motion.div 
+            className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-2xl p-8 md:p-10 border border-border/30"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
               <div>
-                <h2 className="text-2xl md:text-3xl font-display font-bold mb-2">Explore Products Your Way</h2>
+                <h2 className="text-2xl md:text-3xl font-display font-bold mb-2 text-foreground">Explore Products Your Way</h2>
                 <p className="text-muted-foreground text-base">Choose how you'd like to browse</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => setViewMode("standard")}
-                  variant={viewMode === "standard" ? "default" : "outline"}
-                >
-                  Standard View
-                </Button>
-                <Button
-                  onClick={() => setViewMode("cuisine")}
-                  variant={viewMode === "cuisine" ? "default" : "outline"}
-                >
-                  Cuisine Explorer
-                </Button>
-                <Button
-                  onClick={() => setViewMode("curated")}
-                  variant={viewMode === "curated" ? "default" : "outline"}
-                >
-                  Curated Collections
-                </Button>
+                {[
+                  { key: "standard", label: "Standard View" },
+                  { key: "cuisine", label: "Cuisine Explorer" },
+                  { key: "curated", label: "Curated Collections" },
+                ].map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    onClick={() => setViewMode(key as ViewMode)}
+                    variant={viewMode === key ? "default" : "outline"}
+                    className={viewMode === key ? "shadow-lg" : ""}
+                  >
+                    {label}
+                  </Button>
+                ))}
               </div>
             </div>
 
             {/* Standard View */}
             {viewMode === "standard" && (
-              <div className="space-y-8">
+              <motion.div 
+                className="space-y-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <div>
-                  <h3 className="text-xl font-bold mb-4">Best Sellers</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {bestSellers.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                  <h3 className="text-xl font-bold mb-6 text-foreground">Best Sellers</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    {bestSellers.map((product, index) => (
+                      <ProductCard key={product.id} product={product} index={index} />
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Cuisine Explorer View */}
             {viewMode === "cuisine" && (
-              <div className="space-y-8">
+              <motion.div 
+                className="space-y-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {Object.entries(cuisineGroups).map(([cuisineName, cuisineProducts]) => (
                   <div key={cuisineName}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold">{cuisineName}</h3>
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-xl font-bold text-foreground">{cuisineName}</h3>
                       <Link to="/products">
-                        <Button variant="ghost" size="sm" className="group">
+                        <Button variant="ghost" size="sm" className="group text-primary">
                           View All
                           <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
@@ -222,17 +166,17 @@ const Index = () => {
                     </div>
                     <ScrollArea className="w-full">
                       <div className="flex gap-4 pb-4">
-                        {cuisineProducts.map((product) => (
-                          <div key={product.id} className="flex-none w-[200px]">
-                            <ProductCard product={product} />
+                        {cuisineProducts.map((product, index) => (
+                          <div key={product.id} className="flex-none w-[220px]">
+                            <ProductCard product={product} index={index} />
                           </div>
                         ))}
-                        <Link to="/products" className="flex-none w-[200px]">
-                          <div className="h-full min-h-[300px] flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-border hover:border-primary transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <ChevronRight className="h-6 w-6 text-primary" />
+                        <Link to="/products" className="flex-none w-[220px]">
+                          <div className="h-full min-h-[380px] flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/50 bg-card/50 transition-all duration-300 cursor-pointer hover:bg-card">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                              <ChevronRight className="h-7 w-7 text-primary" />
                             </div>
-                            <span className="text-sm font-medium">View All</span>
+                            <span className="text-sm font-medium text-muted-foreground">View All</span>
                           </div>
                         </Link>
                       </div>
@@ -240,18 +184,23 @@ const Index = () => {
                     </ScrollArea>
                   </div>
                 ))}
-              </div>
+              </motion.div>
             )}
 
             {/* Curated Collections View */}
             {viewMode === "curated" && (
-              <div className="space-y-8">
+              <motion.div 
+                className="space-y-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {Object.entries(curatedCollections).map(([collectionName, collectionProducts]) => (
                   <div key={collectionName}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold">{collectionName}</h3>
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-xl font-bold text-foreground">{collectionName}</h3>
                       <Link to="/products">
-                        <Button variant="ghost" size="sm" className="group">
+                        <Button variant="ghost" size="sm" className="group text-primary">
                           View All
                           <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
@@ -259,17 +208,17 @@ const Index = () => {
                     </div>
                     <ScrollArea className="w-full">
                       <div className="flex gap-4 pb-4">
-                        {collectionProducts.map((product) => (
-                          <div key={product.id} className="flex-none w-[200px]">
-                            <ProductCard product={product} />
+                        {collectionProducts.map((product, index) => (
+                          <div key={product.id} className="flex-none w-[220px]">
+                            <ProductCard product={product} index={index} />
                           </div>
                         ))}
-                        <Link to="/products" className="flex-none w-[200px]">
-                          <div className="h-full min-h-[300px] flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-border hover:border-primary transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <ChevronRight className="h-6 w-6 text-primary" />
+                        <Link to="/products" className="flex-none w-[220px]">
+                          <div className="h-full min-h-[380px] flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/50 bg-card/50 transition-all duration-300 cursor-pointer hover:bg-card">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                              <ChevronRight className="h-7 w-7 text-primary" />
                             </div>
-                            <span className="text-sm font-medium">View All</span>
+                            <span className="text-sm font-medium text-muted-foreground">View All</span>
                           </div>
                         </Link>
                       </div>
@@ -277,95 +226,33 @@ const Index = () => {
                     </ScrollArea>
                   </div>
                 ))}
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </section>
 
         {/* Recently Viewed */}
         {recentlyViewed.length > 0 && (
-          <section className="container py-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Your Recently Viewed</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-              {recentlyViewed.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+          <section className="container">
+            <ProductSection title="Your Recently Viewed" products={recentlyViewed} showViewAll={false} />
           </section>
         )}
 
-        {/* Staples & Grains */}
-        <section className="container py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Staples & Grains</h2>
-            <Link to="/products">
-              <Button variant="ghost" size="sm">
-                See more
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {staples.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        {/* Category Sections */}
+        <section className="container">
+          <ProductSection title="Staples & Grains" products={staples} />
         </section>
 
-        {/* Snacks */}
-        <section className="container py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Snacks & Treats</h2>
-            <Link to="/products">
-              <Button variant="ghost" size="sm">
-                See more
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {snacks.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <section className="container">
+          <ProductSection title="Snacks & Treats" products={snacks} />
         </section>
 
-        {/* Beverages */}
-        <section className="container py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Beverages</h2>
-            <Link to="/products">
-              <Button variant="ghost" size="sm">
-                See more
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {beverages.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <section className="container">
+          <ProductSection title="Beverages" products={beverages} />
         </section>
 
-        {/* Instant Food */}
-        <section className="container py-8 pb-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Quick & Easy Meals</h2>
-            <Link to="/products">
-              <Button variant="ghost" size="sm">
-                See more
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-            {instantFood.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <section className="container pb-16">
+          <ProductSection title="Quick & Easy Meals" products={instantFood} />
         </section>
       </main>
 
