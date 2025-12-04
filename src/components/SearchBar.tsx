@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { products, categories } from "@/data/products";
 import { Product } from "@/types/product";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Popover,
   PopoverContent,
@@ -20,8 +20,11 @@ const SearchBar = () => {
   const [results, setResults] = useState<Product[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (query.length < 2 && selectedCategories.length === 0) {
@@ -51,6 +54,7 @@ const SearchBar = () => {
     });
 
     setResults(filtered.slice(0, 8));
+    setSelectedIndex(-1);
   }, [query, selectedCategories, inStockOnly]);
 
   useEffect(() => {
@@ -60,12 +64,68 @@ const SearchBar = () => {
         !containerRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setSelectedIndex(-1);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && resultsRef.current) {
+      const items = resultsRef.current.querySelectorAll("[data-result-item]");
+      const selectedItem = items[selectedIndex] as HTMLElement;
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [selectedIndex]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!isOpen || results.length === 0) {
+        if (e.key === "Escape") {
+          setIsOpen(false);
+          inputRef.current?.blur();
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < results.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev > 0 ? prev - 1 : results.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < results.length) {
+            const product = results[selectedIndex];
+            navigate(`/product/${product.id}`);
+            setIsOpen(false);
+            setQuery("");
+            setSelectedIndex(-1);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          setIsOpen(false);
+          setSelectedIndex(-1);
+          inputRef.current?.blur();
+          break;
+      }
+    },
+    [isOpen, results, selectedIndex, navigate]
+  );
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -99,6 +159,7 @@ const SearchBar = () => {
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
             className="pl-9 pr-8 bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50"
           />
           {query && (
@@ -185,7 +246,7 @@ const SearchBar = () => {
       {isOpen && (query.length >= 2 || results.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden">
           {results.length > 0 ? (
-            <div className="max-h-[400px] overflow-y-auto">
+            <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
               {selectedCategories.length > 0 && (
                 <div className="px-3 py-2 border-b bg-muted/30">
                   <div className="flex flex-wrap gap-1">
@@ -202,15 +263,23 @@ const SearchBar = () => {
                   </div>
                 </div>
               )}
-              {results.map((product) => (
+              {results.map((product, index) => (
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
+                  data-result-item
                   onClick={() => {
                     setIsOpen(false);
                     setQuery("");
+                    setSelectedIndex(-1);
                   }}
-                  className="flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors border-b last:border-b-0"
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0",
+                    selectedIndex === index
+                      ? "bg-accent"
+                      : "hover:bg-accent/50"
+                  )}
                 >
                   <img
                     src={product.image}
