@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingCart, Menu } from "lucide-react";
+import { ShoppingCart, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import {
@@ -8,11 +8,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
+import SearchBar from "./SearchBar";
 
 const Header = () => {
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
   const [scrolled, setScrolled] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,16 +37,21 @@ const Header = () => {
         ? "bg-background/95 backdrop-blur-md shadow-md border-b" 
         : "bg-transparent border-transparent"
     }`}>
-      <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex flex-col">
+      <div className="container flex h-16 items-center justify-between gap-4">
+        <Link to="/" className="flex flex-col shrink-0">
           <h1 className="text-2xl font-display font-bold bg-gradient-hero bg-clip-text text-transparent">
             Desi Pantry
           </h1>
           <span className="text-[10px] text-muted-foreground -mt-1">by Metro Hub</span>
         </Link>
 
+        {/* Desktop Search */}
+        <div className="hidden md:flex flex-1 justify-center max-w-xl">
+          <SearchBar />
+        </div>
+
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           {navigation.map((item) => (
             <Link
               key={item.name}
@@ -57,6 +64,16 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Mobile Search Toggle */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+
           <Link to="/cart">
             <Button variant="outline" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
@@ -70,7 +87,7 @@ const Header = () => {
 
           {/* Mobile Navigation */}
           <Sheet>
-            <SheetTrigger asChild className="md:hidden">
+            <SheetTrigger asChild className="lg:hidden">
               <Button variant="outline" size="icon">
                 <Menu className="h-5 w-5" />
               </Button>
@@ -91,6 +108,13 @@ const Header = () => {
           </Sheet>
         </div>
       </div>
+
+      {/* Mobile Search Bar */}
+      {showMobileSearch && (
+        <div className="md:hidden px-4 pb-3 bg-background/95 backdrop-blur-md border-b">
+          <SearchBar />
+        </div>
+      )}
     </header>
   );
 };
