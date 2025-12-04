@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X, Filter, Clock, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,16 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
+const RECENT_SEARCHES_KEY = "desi-pantry-recent-searches";
+const MAX_RECENT_SEARCHES = 5;
+
+interface RecentSearch {
+  id: string;
+  name: string;
+  query: string;
+  timestamp: number;
+}
+
 const SearchBar = () => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -21,10 +31,54 @@ const SearchBar = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) {
+        setRecentSearches(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("Failed to load recent searches:", e);
+    }
+  }, []);
+
+  // Save recent searches to localStorage
+  const saveRecentSearch = useCallback((product: Product) => {
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.id !== product.id);
+      const newSearch: RecentSearch = {
+        id: product.id,
+        name: product.name,
+        query: query,
+        timestamp: Date.now(),
+      };
+      const updated = [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, [query]);
+
+  const removeRecentSearch = useCallback((id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRecentSearches((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const clearAllRecentSearches = useCallback(() => {
+    setRecentSearches([]);
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  }, []);
 
   useEffect(() => {
     if (query.length < 2 && selectedCategories.length === 0) {
@@ -83,9 +137,23 @@ const SearchBar = () => {
     }
   }, [selectedIndex]);
 
+  const handleSelectProduct = useCallback(
+    (product: Product) => {
+      saveRecentSearch(product);
+      navigate(`/product/${product.id}`);
+      setIsOpen(false);
+      setQuery("");
+      setSelectedIndex(-1);
+    },
+    [saveRecentSearch, navigate]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (!isOpen || results.length === 0) {
+      const showingRecent = query.length < 2 && recentSearches.length > 0;
+      const itemsCount = showingRecent ? recentSearches.length : results.length;
+
+      if (!isOpen || itemsCount === 0) {
         if (e.key === "Escape") {
           setIsOpen(false);
           inputRef.current?.blur();
@@ -97,23 +165,27 @@ const SearchBar = () => {
         case "ArrowDown":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < results.length - 1 ? prev + 1 : 0
+            prev < itemsCount - 1 ? prev + 1 : 0
           );
           break;
         case "ArrowUp":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : results.length - 1
+            prev > 0 ? prev - 1 : itemsCount - 1
           );
           break;
         case "Enter":
           e.preventDefault();
-          if (selectedIndex >= 0 && selectedIndex < results.length) {
-            const product = results[selectedIndex];
-            navigate(`/product/${product.id}`);
-            setIsOpen(false);
-            setQuery("");
-            setSelectedIndex(-1);
+          if (selectedIndex >= 0) {
+            if (showingRecent && selectedIndex < recentSearches.length) {
+              const recent = recentSearches[selectedIndex];
+              const product = products.find((p) => p.id === recent.id);
+              if (product) {
+                handleSelectProduct(product);
+              }
+            } else if (!showingRecent && selectedIndex < results.length) {
+              handleSelectProduct(results[selectedIndex]);
+            }
           }
           break;
         case "Escape":
@@ -124,7 +196,7 @@ const SearchBar = () => {
           break;
       }
     },
-    [isOpen, results, selectedIndex, navigate]
+    [isOpen, results, selectedIndex, query, recentSearches, handleSelectProduct]
   );
 
   const toggleCategory = (category: string) => {
@@ -143,6 +215,8 @@ const SearchBar = () => {
 
   const activeFiltersCount =
     selectedCategories.length + (inStockOnly ? 1 : 0);
+
+  const showRecentSearches = query.length < 2 && recentSearches.length > 0 && results.length === 0;
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
@@ -242,10 +316,73 @@ const SearchBar = () => {
         </Popover>
       </div>
 
-      {/* Results Dropdown */}
-      {isOpen && (query.length >= 2 || results.length > 0) && (
+      {/* Dropdown */}
+      {isOpen && (showRecentSearches || query.length >= 2 || results.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden">
-          {results.length > 0 ? (
+          {/* Recent Searches */}
+          {showRecentSearches && (
+            <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
+              <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Recent Searches
+                </span>
+                <button
+                  onClick={clearAllRecentSearches}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <Trash2 className="h-3 w-3" /> Clear
+                </button>
+              </div>
+              {recentSearches.map((recent, index) => {
+                const product = products.find((p) => p.id === recent.id);
+                if (!product) return null;
+                return (
+                  <Link
+                    key={recent.id}
+                    to={`/product/${recent.id}`}
+                    data-result-item
+                    onClick={() => {
+                      saveRecentSearch(product);
+                      setIsOpen(false);
+                      setQuery("");
+                      setSelectedIndex(-1);
+                    }}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0 group",
+                      selectedIndex === index
+                        ? "bg-accent"
+                        : "hover:bg-accent/50"
+                    )}
+                  >
+                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-10 h-10 object-cover rounded-md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.brand}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => removeRecentSearch(recent.id, e)}
+                      className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Search Results */}
+          {!showRecentSearches && results.length > 0 && (
             <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
               {selectedCategories.length > 0 && (
                 <div className="px-3 py-2 border-b bg-muted/30">
@@ -268,11 +405,7 @@ const SearchBar = () => {
                   key={product.id}
                   to={`/product/${product.id}`}
                   data-result-item
-                  onClick={() => {
-                    setIsOpen(false);
-                    setQuery("");
-                    setSelectedIndex(-1);
-                  }}
+                  onClick={() => handleSelectProduct(product)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={cn(
                     "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0",
@@ -312,7 +445,10 @@ const SearchBar = () => {
                 View all products →
               </Link>
             </div>
-          ) : query.length >= 2 ? (
+          )}
+
+          {/* No Results */}
+          {!showRecentSearches && query.length >= 2 && results.length === 0 && (
             <div className="p-6 text-center text-muted-foreground">
               <p className="text-sm">No products found for "{query}"</p>
               <Link
@@ -323,7 +459,7 @@ const SearchBar = () => {
                 Browse all products
               </Link>
             </div>
-          ) : null}
+          )}
         </div>
       )}
     </div>
