@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Search, X, Filter, Clock, Trash2, TrendingUp } from "lucide-react";
+import { Search, X, Filter, Clock, Trash2, TrendingUp, Sparkles, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,12 @@ import {
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
+interface AutocompleteSuggestion {
+  type: "product" | "category" | "brand";
+  text: string;
+  id?: string;
+}
 
 const RECENT_SEARCHES_KEY = "desi-pantry-recent-searches";
 const MAX_RECENT_SEARCHES = 5;
@@ -155,15 +161,66 @@ const SearchBar = () => {
       .slice(0, 5);
   }, []);
 
+  // Autocomplete suggestions based on query
+  const autocompleteSuggestions = useMemo((): AutocompleteSuggestion[] => {
+    if (query.length < 1) return [];
+    
+    const lowerQuery = query.toLowerCase();
+    const suggestions: AutocompleteSuggestion[] = [];
+    
+    // Category matches
+    const matchingCategories = categories
+      .filter(c => c !== "All" && c.toLowerCase().includes(lowerQuery))
+      .slice(0, 2)
+      .map(c => ({ type: "category" as const, text: c }));
+    suggestions.push(...matchingCategories);
+    
+    // Brand matches (unique brands)
+    const uniqueBrands = [...new Set(products.map(p => p.brand))];
+    const matchingBrands = uniqueBrands
+      .filter(b => b.toLowerCase().includes(lowerQuery))
+      .slice(0, 2)
+      .map(b => ({ type: "brand" as const, text: b }));
+    suggestions.push(...matchingBrands);
+    
+    // Product name predictions
+    const matchingProducts = products
+      .filter(p => p.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 3)
+      .map(p => ({ type: "product" as const, text: p.name, id: p.id }));
+    suggestions.push(...matchingProducts);
+    
+    return suggestions.slice(0, 6);
+  }, [query]);
+
+  const handleSuggestionClick = useCallback((suggestion: AutocompleteSuggestion) => {
+    if (suggestion.type === "product" && suggestion.id) {
+      const product = products.find(p => p.id === suggestion.id);
+      if (product) {
+        handleSelectProduct(product);
+      }
+    } else {
+      // For category/brand, set as query and filter
+      setQuery(suggestion.text);
+      if (suggestion.type === "category") {
+        setSelectedCategories([suggestion.text]);
+      }
+    }
+  }, [handleSelectProduct]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const hasResults = query.length >= 2;
+      const hasAutocomplete = query.length >= 1 && query.length < 2;
       const recentCount = recentSearches.length;
       const trendingCount = trendingProducts.length;
+      const autocompleteCount = autocompleteSuggestions.length;
       
       let itemsCount: number;
       if (hasResults) {
         itemsCount = results.length;
+      } else if (hasAutocomplete && autocompleteCount > 0) {
+        itemsCount = autocompleteCount + recentCount + trendingCount;
       } else {
         itemsCount = recentCount + trendingCount;
       }
@@ -194,6 +251,21 @@ const SearchBar = () => {
           if (selectedIndex >= 0) {
             if (hasResults && selectedIndex < results.length) {
               handleSelectProduct(results[selectedIndex]);
+            } else if (hasAutocomplete && autocompleteCount > 0) {
+              // Handle autocomplete + recent + trending navigation
+              if (selectedIndex < autocompleteCount) {
+                handleSuggestionClick(autocompleteSuggestions[selectedIndex]);
+              } else if (selectedIndex < autocompleteCount + recentCount) {
+                const recentIndex = selectedIndex - autocompleteCount;
+                const recent = recentSearches[recentIndex];
+                const product = products.find((p) => p.id === recent.id);
+                if (product) handleSelectProduct(product);
+              } else {
+                const trendingIndex = selectedIndex - autocompleteCount - recentCount;
+                if (trendingIndex < trendingCount) {
+                  handleSelectProduct(trendingProducts[trendingIndex]);
+                }
+              }
             } else if (!hasResults) {
               // Handle combined recent + trending navigation
               if (selectedIndex < recentCount) {
@@ -217,7 +289,7 @@ const SearchBar = () => {
           break;
       }
     },
-    [isOpen, results, selectedIndex, query, recentSearches, trendingProducts, handleSelectProduct]
+    [isOpen, results, selectedIndex, query, recentSearches, trendingProducts, autocompleteSuggestions, handleSelectProduct, handleSuggestionClick]
   );
 
   const toggleCategory = (category: string) => {
@@ -237,6 +309,7 @@ const SearchBar = () => {
   const activeFiltersCount =
     selectedCategories.length + (inStockOnly ? 1 : 0);
 
+  const showAutocomplete = query.length >= 1 && query.length < 2 && autocompleteSuggestions.length > 0;
   const showTrending = query.length < 2 && results.length === 0;
 
   return (
@@ -338,10 +411,167 @@ const SearchBar = () => {
       </div>
 
       {/* Dropdown */}
-      {isOpen && (showTrending || query.length >= 2 || results.length > 0) && (
+      {isOpen && (showAutocomplete || showTrending || query.length >= 2 || results.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden">
+          {/* Autocomplete Suggestions when typing (1 char) */}
+          {showAutocomplete && (
+            <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
+              {/* Autocomplete Suggestions Section */}
+              <div className="px-3 py-2 border-b bg-muted/30">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" /> Suggestions
+                </span>
+              </div>
+              {autocompleteSuggestions.map((suggestion, index) => (
+                <button
+                  key={`${suggestion.type}-${suggestion.text}`}
+                  type="button"
+                  data-result-item
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0 w-full text-left",
+                    selectedIndex === index
+                      ? "bg-accent"
+                      : "hover:bg-accent/50"
+                  )}
+                >
+                  {suggestion.type === "category" && (
+                    <Tag className="h-4 w-4 text-emerald-500 shrink-0" />
+                  )}
+                  {suggestion.type === "brand" && (
+                    <Search className="h-4 w-4 text-amber-500 shrink-0" />
+                  )}
+                  {suggestion.type === "product" && (
+                    <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {suggestion.text}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {suggestion.type}
+                    </p>
+                  </div>
+                </button>
+              ))}
+
+              {/* Recent Searches Section */}
+              {recentSearches.length > 0 && (
+                <>
+                  <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Recent Searches
+                    </span>
+                    <button
+                      onClick={clearAllRecentSearches}
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      <Trash2 className="h-3 w-3" /> Clear
+                    </button>
+                  </div>
+                  {recentSearches.map((recent, index) => {
+                    const product = products.find((p) => p.id === recent.id);
+                    if (!product) return null;
+                    const navIndex = autocompleteSuggestions.length + index;
+                    return (
+                      <Link
+                        key={recent.id}
+                        to={`/product/${recent.id}`}
+                        data-result-item
+                        onClick={() => {
+                          saveRecentSearch(product);
+                          setIsOpen(false);
+                          setQuery("");
+                          setSelectedIndex(-1);
+                        }}
+                        onMouseEnter={() => setSelectedIndex(navIndex)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0 group",
+                          selectedIndex === navIndex
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
+                        )}
+                      >
+                        <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded-md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.brand}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => removeRecentSearch(recent.id, e)}
+                          className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Trending Searches Section */}
+              {trendingProducts.length > 0 && (
+                <>
+                  <div className="px-3 py-2 border-b bg-muted/30">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> Trending Searches
+                    </span>
+                  </div>
+                  {trendingProducts.map((product, index) => {
+                    const navIndex = autocompleteSuggestions.length + recentSearches.length + index;
+                    return (
+                      <Link
+                        key={product.id}
+                        to={`/product/${product.id}`}
+                        data-result-item
+                        onClick={() => handleSelectProduct(product)}
+                        onMouseEnter={() => setSelectedIndex(navIndex)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0",
+                          selectedIndex === navIndex
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
+                        )}
+                      >
+                        <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded-md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.brand}
+                          </p>
+                        </div>
+                        {product.isBestSeller && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Popular
+                          </Badge>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Recent Searches + Trending when no query */}
-          {showTrending && (
+          {showTrending && !showAutocomplete && (
             <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
               {/* Recent Searches Section */}
               {recentSearches.length > 0 && (
@@ -457,7 +687,7 @@ const SearchBar = () => {
           )}
 
           {/* Search Results */}
-          {!showTrending && results.length > 0 && (
+          {!showTrending && !showAutocomplete && results.length > 0 && (
             <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
               {selectedCategories.length > 0 && (
                 <div className="px-3 py-2 border-b bg-muted/30">
