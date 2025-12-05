@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Filter, Clock, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Search, X, Filter, Clock, Trash2, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -148,10 +148,25 @@ const SearchBar = () => {
     [saveRecentSearch, navigate]
   );
 
+  // Trending searches - based on bestsellers and popular products
+  const trendingProducts = useMemo(() => {
+    return products
+      .filter((p) => p.isBestSeller || p.discount)
+      .slice(0, 5);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const showingRecent = query.length < 2 && recentSearches.length > 0;
-      const itemsCount = showingRecent ? recentSearches.length : results.length;
+      const hasResults = query.length >= 2;
+      const recentCount = recentSearches.length;
+      const trendingCount = trendingProducts.length;
+      
+      let itemsCount: number;
+      if (hasResults) {
+        itemsCount = results.length;
+      } else {
+        itemsCount = recentCount + trendingCount;
+      }
 
       if (!isOpen || itemsCount === 0) {
         if (e.key === "Escape") {
@@ -177,14 +192,20 @@ const SearchBar = () => {
         case "Enter":
           e.preventDefault();
           if (selectedIndex >= 0) {
-            if (showingRecent && selectedIndex < recentSearches.length) {
-              const recent = recentSearches[selectedIndex];
-              const product = products.find((p) => p.id === recent.id);
-              if (product) {
-                handleSelectProduct(product);
-              }
-            } else if (!showingRecent && selectedIndex < results.length) {
+            if (hasResults && selectedIndex < results.length) {
               handleSelectProduct(results[selectedIndex]);
+            } else if (!hasResults) {
+              // Handle combined recent + trending navigation
+              if (selectedIndex < recentCount) {
+                const recent = recentSearches[selectedIndex];
+                const product = products.find((p) => p.id === recent.id);
+                if (product) handleSelectProduct(product);
+              } else {
+                const trendingIndex = selectedIndex - recentCount;
+                if (trendingIndex < trendingCount) {
+                  handleSelectProduct(trendingProducts[trendingIndex]);
+                }
+              }
             }
           }
           break;
@@ -196,7 +217,7 @@ const SearchBar = () => {
           break;
       }
     },
-    [isOpen, results, selectedIndex, query, recentSearches, handleSelectProduct]
+    [isOpen, results, selectedIndex, query, recentSearches, trendingProducts, handleSelectProduct]
   );
 
   const toggleCategory = (category: string) => {
@@ -216,7 +237,7 @@ const SearchBar = () => {
   const activeFiltersCount =
     selectedCategories.length + (inStockOnly ? 1 : 0);
 
-  const showRecentSearches = query.length < 2 && recentSearches.length > 0 && results.length === 0;
+  const showTrending = query.length < 2 && results.length === 0;
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
@@ -317,72 +338,126 @@ const SearchBar = () => {
       </div>
 
       {/* Dropdown */}
-      {isOpen && (showRecentSearches || query.length >= 2 || results.length > 0) && (
+      {isOpen && (showTrending || query.length >= 2 || results.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border rounded-lg shadow-xl z-50 overflow-hidden">
-          {/* Recent Searches */}
-          {showRecentSearches && (
+          {/* Recent Searches + Trending when no query */}
+          {showTrending && (
             <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
-              <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> Recent Searches
-                </span>
-                <button
-                  onClick={clearAllRecentSearches}
-                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  <Trash2 className="h-3 w-3" /> Clear
-                </button>
-              </div>
-              {recentSearches.map((recent, index) => {
-                const product = products.find((p) => p.id === recent.id);
-                if (!product) return null;
-                return (
-                  <Link
-                    key={recent.id}
-                    to={`/product/${recent.id}`}
-                    data-result-item
-                    onClick={() => {
-                      saveRecentSearch(product);
-                      setIsOpen(false);
-                      setQuery("");
-                      setSelectedIndex(-1);
-                    }}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    className={cn(
-                      "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0 group",
-                      selectedIndex === index
-                        ? "bg-accent"
-                        : "hover:bg-accent/50"
-                    )}
-                  >
-                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-10 h-10 object-cover rounded-md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.brand}
-                      </p>
-                    </div>
+              {/* Recent Searches Section */}
+              {recentSearches.length > 0 && (
+                <>
+                  <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Recent Searches
+                    </span>
                     <button
-                      onClick={(e) => removeRecentSearch(recent.id, e)}
-                      className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                      onClick={clearAllRecentSearches}
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" /> Clear
                     </button>
-                  </Link>
-                );
-              })}
+                  </div>
+                  {recentSearches.map((recent, index) => {
+                    const product = products.find((p) => p.id === recent.id);
+                    if (!product) return null;
+                    return (
+                      <Link
+                        key={recent.id}
+                        to={`/product/${recent.id}`}
+                        data-result-item
+                        onClick={() => {
+                          saveRecentSearch(product);
+                          setIsOpen(false);
+                          setQuery("");
+                          setSelectedIndex(-1);
+                        }}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0 group",
+                          selectedIndex === index
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
+                        )}
+                      >
+                        <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded-md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.brand}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => removeRecentSearch(recent.id, e)}
+                          className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Trending Searches Section */}
+              {trendingProducts.length > 0 && (
+                <>
+                  <div className="px-3 py-2 border-b bg-muted/30">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> Trending Searches
+                    </span>
+                  </div>
+                  {trendingProducts.map((product, index) => {
+                    const navIndex = recentSearches.length + index;
+                    return (
+                      <Link
+                        key={product.id}
+                        to={`/product/${product.id}`}
+                        data-result-item
+                        onClick={() => handleSelectProduct(product)}
+                        onMouseEnter={() => setSelectedIndex(navIndex)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 transition-colors border-b last:border-b-0",
+                          selectedIndex === navIndex
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
+                        )}
+                      >
+                        <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded-md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {product.brand}
+                          </p>
+                        </div>
+                        {product.isBestSeller && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Popular
+                          </Badge>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
             </div>
           )}
 
           {/* Search Results */}
-          {!showRecentSearches && results.length > 0 && (
+          {!showTrending && results.length > 0 && (
             <div ref={resultsRef} className="max-h-[400px] overflow-y-auto">
               {selectedCategories.length > 0 && (
                 <div className="px-3 py-2 border-b bg-muted/30">
@@ -448,7 +523,7 @@ const SearchBar = () => {
           )}
 
           {/* No Results */}
-          {!showRecentSearches && query.length >= 2 && results.length === 0 && (
+          {!showTrending && query.length >= 2 && results.length === 0 && (
             <div className="p-6 text-center text-muted-foreground">
               <p className="text-sm">No products found for "{query}"</p>
               <Link
