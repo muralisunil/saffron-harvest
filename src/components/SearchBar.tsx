@@ -90,6 +90,65 @@ const levenshteinDistance = (a: string, b: string): number => {
   return matrix[b.length][a.length];
 };
 
+// Highlight matching parts of text - returns JSX with highlighted segments
+const highlightMatch = (text: string, query: string): React.ReactNode => {
+  if (!query || query.length < 1) return text;
+  
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  
+  // Try exact substring match first
+  const exactIndex = lowerText.indexOf(lowerQuery);
+  if (exactIndex >= 0) {
+    return (
+      <>
+        {text.slice(0, exactIndex)}
+        <mark className="bg-primary/20 text-foreground rounded-sm px-0.5">{text.slice(exactIndex, exactIndex + query.length)}</mark>
+        {text.slice(exactIndex + query.length)}
+      </>
+    );
+  }
+  
+  // Fuzzy character highlighting - highlight characters that match in sequence
+  const result: React.ReactNode[] = [];
+  let qi = 0;
+  let currentSegment = "";
+  let matchSegment = "";
+  
+  for (let ti = 0; ti < text.length; ti++) {
+    if (qi < lowerQuery.length && lowerText[ti] === lowerQuery[qi]) {
+      // Flush non-matching segment
+      if (currentSegment) {
+        result.push(currentSegment);
+        currentSegment = "";
+      }
+      matchSegment += text[ti];
+      qi++;
+    } else {
+      // Flush matching segment
+      if (matchSegment) {
+        result.push(
+          <mark key={ti} className="bg-primary/20 text-foreground rounded-sm px-0.5">{matchSegment}</mark>
+        );
+        matchSegment = "";
+      }
+      currentSegment += text[ti];
+    }
+  }
+  
+  // Flush remaining segments
+  if (matchSegment) {
+    result.push(
+      <mark key="end-match" className="bg-primary/20 text-foreground rounded-sm px-0.5">{matchSegment}</mark>
+    );
+  }
+  if (currentSegment) {
+    result.push(currentSegment);
+  }
+  
+  return result.length > 0 ? <>{result}</> : text;
+};
+
 interface AutocompleteSuggestion {
   type: "product" | "category" | "brand";
   text: string;
@@ -533,7 +592,7 @@ const SearchBar = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {suggestion.text}
+                      {highlightMatch(suggestion.text, query)}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">
                       {suggestion.type}
@@ -812,10 +871,10 @@ const SearchBar = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {product.name}
+                      {highlightMatch(product.name, query)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {product.brand} • {product.category}
+                      {highlightMatch(product.brand, query)} • {highlightMatch(product.category, query)}
                     </p>
                     <p className="text-sm font-semibold text-primary">
                       ₹{product.variants[0]?.price}
