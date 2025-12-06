@@ -14,6 +14,285 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          device_type: string | null
+          event_name: string
+          event_type: string
+          id: string
+          page_path: string | null
+          properties: Json | null
+          referrer: string | null
+          screen_height: number | null
+          screen_width: number | null
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string | null
+          event_name: string
+          event_type: string
+          id?: string
+          page_path?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_type?: string | null
+          event_name?: string
+          event_type?: string
+          id?: string
+          page_path?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_page_views: {
+        Row: {
+          created_at: string
+          exited_at: string | null
+          id: string
+          page_path: string
+          page_title: string | null
+          referrer: string | null
+          scroll_depth_percent: number | null
+          session_id: string
+          time_on_page_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          exited_at?: string | null
+          id?: string
+          page_path: string
+          page_title?: string | null
+          referrer?: string | null
+          scroll_depth_percent?: number | null
+          session_id: string
+          time_on_page_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          exited_at?: string | null
+          id?: string
+          page_path?: string
+          page_title?: string | null
+          referrer?: string | null
+          scroll_depth_percent?: number | null
+          session_id?: string
+          time_on_page_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_performance: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          metric_name: string
+          metric_type: string
+          page_path: string | null
+          properties: Json | null
+          resource_url: string | null
+          session_id: string
+          start_time: string | null
+          status_code: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          page_path?: string | null
+          properties?: Json | null
+          resource_url?: string | null
+          session_id: string
+          start_time?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          page_path?: string | null
+          properties?: Json | null
+          resource_url?: string | null
+          session_id?: string
+          start_time?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_product_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          price: number | null
+          product_id: string
+          properties: Json | null
+          quantity: number | null
+          session_id: string
+          source_page: string | null
+          source_section: string | null
+          user_id: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          price?: number | null
+          product_id: string
+          properties?: Json | null
+          quantity?: number | null
+          session_id: string
+          source_page?: string | null
+          source_section?: string | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          price?: number | null
+          product_id?: string
+          properties?: Json | null
+          quantity?: number | null
+          session_id?: string
+          source_page?: string | null
+          source_section?: string | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_search_events: {
+        Row: {
+          clicked_result_id: string | null
+          clicked_result_position: number | null
+          created_at: string
+          filters_applied: Json | null
+          id: string
+          query: string
+          results_count: number | null
+          search_type: string | null
+          session_id: string
+          time_to_click_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          clicked_result_id?: string | null
+          clicked_result_position?: number | null
+          created_at?: string
+          filters_applied?: Json | null
+          id?: string
+          query: string
+          results_count?: number | null
+          search_type?: string | null
+          session_id: string
+          time_to_click_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          clicked_result_id?: string | null
+          clicked_result_position?: number | null
+          created_at?: string
+          filters_applied?: Json | null
+          id?: string
+          query?: string
+          results_count?: number | null
+          search_type?: string | null
+          session_id?: string
+          time_to_click_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_sessions: {
+        Row: {
+          browser: string | null
+          device_type: string | null
+          events_count: number | null
+          id: string
+          is_bounce: boolean | null
+          landing_page: string | null
+          last_activity_at: string
+          os: string | null
+          page_views_count: number | null
+          referrer: string | null
+          screen_height: number | null
+          screen_width: number | null
+          started_at: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          browser?: string | null
+          device_type?: string | null
+          events_count?: number | null
+          id: string
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          last_activity_at?: string
+          os?: string | null
+          page_views_count?: number | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          started_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          browser?: string | null
+          device_type?: string | null
+          events_count?: number | null
+          id?: string
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          last_activity_at?: string
+          os?: string | null
+          page_views_count?: number | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          started_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       list_items: {
         Row: {
           added_at: string
