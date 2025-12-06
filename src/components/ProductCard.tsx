@@ -7,19 +7,52 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import AddToListButton from "./AddToListButton";
 import { motion } from "framer-motion";
+import { trackProductEventDirect } from "@/lib/analytics";
 
 interface ProductCardProps {
   product: Product;
   index?: number;
   onQuickView?: (product: Product) => void;
+  sourceSection?: string;
 }
 
-const ProductCard = ({ product, index = 0, onQuickView }: ProductCardProps) => {
+const ProductCard = ({ product, index = 0, onQuickView, sourceSection }: ProductCardProps) => {
   const { addItem } = useCart();
   const baseVariant = product.variants[0];
   const displayPrice = product.discount 
     ? baseVariant.price 
     : baseVariant.price;
+
+  const handleProductClick = () => {
+    trackProductEventDirect({
+      productId: product.id,
+      variantId: baseVariant.id,
+      eventType: 'view',
+      price: baseVariant.price,
+      sourceSection,
+      properties: {
+        productName: product.name,
+        brand: product.brand,
+        category: product.category
+      }
+    });
+  };
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    trackProductEventDirect({
+      productId: product.id,
+      variantId: baseVariant.id,
+      eventType: 'quick_view',
+      price: baseVariant.price,
+      sourceSection,
+      properties: {
+        productName: product.name,
+        brand: product.brand
+      }
+    });
+    onQuickView?.(product);
+  };
 
   return (
     <motion.div
@@ -29,7 +62,7 @@ const ProductCard = ({ product, index = 0, onQuickView }: ProductCardProps) => {
       transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
     >
       <Card className="group overflow-hidden bg-card/80 backdrop-blur-sm border-0 shadow-soft hover:shadow-elevated transition-all duration-500 hover:-translate-y-2">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/product/${product.id}`} onClick={handleProductClick}>
           <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-muted to-muted/50">
             <img
               src={product.image}
@@ -62,10 +95,7 @@ const ProductCard = ({ product, index = 0, onQuickView }: ProductCardProps) => {
                 variant="secondary"
                 size="sm"
                 className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-background/90 backdrop-blur-sm hover:bg-background"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onQuickView(product);
-                }}
+                onClick={handleQuickView}
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -75,7 +105,7 @@ const ProductCard = ({ product, index = 0, onQuickView }: ProductCardProps) => {
 
         <CardContent className="p-5">
           <div className="space-y-3">
-            <Link to={`/product/${product.id}`} className="block">
+            <Link to={`/product/${product.id}`} onClick={handleProductClick} className="block">
               <p className="text-xs font-medium text-primary/80 uppercase tracking-wider">{product.brand}</p>
               <h3 className="font-semibold text-base leading-snug line-clamp-2 mt-1 text-foreground group-hover:text-primary transition-colors duration-300">
                 {product.name}

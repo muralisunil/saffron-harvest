@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem, Product, ProductVariant } from "@/types/product";
 import { toast } from "sonner";
+import { trackProductEventDirect } from "@/lib/analytics";
 
 interface CartContextType {
   items: CartItem[];
@@ -25,6 +26,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [items]);
 
   const addItem = (product: Product, variant: ProductVariant, quantity = 1) => {
+    // Track add to cart event
+    trackProductEventDirect({
+      productId: product.id,
+      variantId: variant.id,
+      eventType: 'add_to_cart',
+      quantity,
+      price: variant.price,
+      properties: {
+        productName: product.name,
+        brand: product.brand,
+        category: product.category,
+        variantSize: variant.size
+      }
+    });
+
     setItems((prev) => {
       const existing = prev.find(
         (item) => item.product.id === product.id && item.variant.id === variant.id
@@ -45,6 +61,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const removeItem = (productId: string, variantId: string) => {
+    // Track remove from cart event
+    const item = items.find(i => i.product.id === productId && i.variant.id === variantId);
+    if (item) {
+      trackProductEventDirect({
+        productId,
+        variantId,
+        eventType: 'remove_from_cart',
+        quantity: item.quantity,
+        price: item.variant.price,
+        properties: {
+          productName: item.product.name,
+          brand: item.product.brand
+        }
+      });
+    }
+
     setItems((prev) =>
       prev.filter(
         (item) => !(item.product.id === productId && item.variant.id === variantId)

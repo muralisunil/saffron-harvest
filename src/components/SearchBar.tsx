@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { trackSearchEventDirect } from "@/lib/analytics";
 
 // Fuzzy matching function - returns a score (lower is better, -1 means no match)
 const fuzzyMatch = (query: string, target: string): number => {
@@ -280,14 +281,29 @@ const SearchBar = () => {
   }, [selectedIndex]);
 
   const handleSelectProduct = useCallback(
-    (product: Product) => {
+    (product: Product, position?: number) => {
+      // Track search click event
+      if (query) {
+        trackSearchEventDirect({
+          query,
+          resultsCount: results.length,
+          clickedResultId: product.id,
+          clickedResultPosition: position,
+          searchType: 'full_search',
+          filtersApplied: {
+            categories: selectedCategories,
+            inStockOnly
+          }
+        });
+      }
+      
       saveRecentSearch(product);
       navigate(`/product/${product.id}`);
       setIsOpen(false);
       setQuery("");
       setSelectedIndex(-1);
     },
-    [saveRecentSearch, navigate]
+    [saveRecentSearch, navigate, query, results.length, selectedCategories, inStockOnly]
   );
 
   // Trending searches - based on bestsellers and popular products
