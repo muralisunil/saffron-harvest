@@ -14,10 +14,87 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
+// Fuzzy matching function - returns a score (lower is better, -1 means no match)
+const fuzzyMatch = (query: string, target: string): number => {
+  const q = query.toLowerCase();
+  const t = target.toLowerCase();
+  
+  // Exact match
+  if (t === q) return 0;
+  
+  // Starts with query
+  if (t.startsWith(q)) return 1;
+  
+  // Contains query
+  if (t.includes(q)) return 2;
+  
+  // Fuzzy character matching with max 2 errors
+  let qi = 0;
+  let errors = 0;
+  const maxErrors = Math.min(2, Math.floor(q.length / 2));
+  
+  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+    if (t[ti] === q[qi]) {
+      qi++;
+    } else if (qi > 0 || ti < 3) {
+      // Only count as error if we've started matching or near the beginning
+      errors++;
+      if (errors > maxErrors) break;
+    }
+  }
+  
+  // If we matched all query characters with acceptable errors
+  if (qi === q.length) {
+    return 3 + errors;
+  }
+  
+  // Levenshtein-like distance for short queries (handles transpositions, insertions, deletions)
+  if (q.length >= 3 && q.length <= 10) {
+    const distance = levenshteinDistance(q, t.slice(0, Math.min(t.length, q.length + 2)));
+    if (distance <= maxErrors) {
+      return 4 + distance;
+    }
+  }
+  
+  return -1; // No match
+};
+
+// Simple Levenshtein distance for short strings
+const levenshteinDistance = (a: string, b: string): number => {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  
+  const matrix: number[][] = [];
+  
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b[i - 1] === a[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+  
+  return matrix[b.length][a.length];
+};
+
 interface AutocompleteSuggestion {
   type: "product" | "category" | "brand";
   text: string;
   id?: string;
+  score?: number;
 }
 
 const RECENT_SEARCHES_KEY = "desi-pantry-recent-searches";
@@ -161,36 +238,45 @@ const SearchBar = () => {
       .slice(0, 5);
   }, []);
 
-  // Autocomplete suggestions based on query
+  // Autocomplete suggestions based on query with fuzzy matching
   const autocompleteSuggestions = useMemo((): AutocompleteSuggestion[] => {
     if (query.length < 1) return [];
     
-    const lowerQuery = query.toLowerCase();
     const suggestions: AutocompleteSuggestion[] = [];
     
-    // Category matches
+    // Category matches with fuzzy search
     const matchingCategories = categories
-      .filter(c => c !== "All" && c.toLowerCase().includes(lowerQuery))
+      .filter(c => c !== "All")
+      .map(c => ({ text: c, score: fuzzyMatch(query, c) }))
+      .filter(c => c.score >= 0)
+      .sort((a, b) => a.score - b.score)
       .slice(0, 2)
-      .map(c => ({ type: "category" as const, text: c }));
+      .map(c => ({ type: "category" as const, text: c.text, score: c.score }));
     suggestions.push(...matchingCategories);
     
-    // Brand matches (unique brands)
+    // Brand matches with fuzzy search (unique brands)
     const uniqueBrands = [...new Set(products.map(p => p.brand))];
     const matchingBrands = uniqueBrands
-      .filter(b => b.toLowerCase().includes(lowerQuery))
+      .map(b => ({ text: b, score: fuzzyMatch(query, b) }))
+      .filter(b => b.score >= 0)
+      .sort((a, b) => a.score - b.score)
       .slice(0, 2)
-      .map(b => ({ type: "brand" as const, text: b }));
+      .map(b => ({ type: "brand" as const, text: b.text, score: b.score }));
     suggestions.push(...matchingBrands);
     
-    // Product name predictions
+    // Product name predictions with fuzzy search
     const matchingProducts = products
-      .filter(p => p.name.toLowerCase().includes(lowerQuery))
+      .map(p => ({ product: p, score: fuzzyMatch(query, p.name) }))
+      .filter(p => p.score >= 0)
+      .sort((a, b) => a.score - b.score)
       .slice(0, 3)
-      .map(p => ({ type: "product" as const, text: p.name, id: p.id }));
+      .map(p => ({ type: "product" as const, text: p.product.name, id: p.product.id, score: p.score }));
     suggestions.push(...matchingProducts);
     
-    return suggestions.slice(0, 6);
+    // Sort all suggestions by score and return top 6
+    return suggestions
+      .sort((a, b) => (a.score ?? 99) - (b.score ?? 99))
+      .slice(0, 6);
   }, [query]);
 
   const handleSuggestionClick = useCallback((suggestion: AutocompleteSuggestion) => {
