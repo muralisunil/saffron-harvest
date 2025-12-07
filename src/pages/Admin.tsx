@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Upload, Download, TrendingUp, Package, DollarSign, ShoppingCart } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Upload, Download, TrendingUp, Package, DollarSign, ShoppingCart, BarChart3 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,15 @@ const Admin = () => {
       <Header />
 
       <main className="flex-1 container py-8">
-        <h1 className="text-3xl font-display font-bold mb-8">Admin Dashboard</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-display font-bold">Admin Dashboard</h1>
+          <Link to="/analytics">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              View Analytics
+            </Button>
+          </Link>
+        </div>
 
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
