@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -7,13 +8,17 @@ import {
 } from "recharts";
 import { 
   Eye, MousePointerClick, ShoppingCart, CreditCard, 
-  TrendingUp, Search, ArrowLeft, Users, Clock, Target
+  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PageViewData {
@@ -45,6 +50,8 @@ interface FunnelData {
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState("7d");
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const [pageViews, setPageViews] = useState<PageViewData[]>([]);
   const [productPerformance, setProductPerformance] = useState<ProductPerformance[]>([]);
   const [searchTrends, setSearchTrends] = useState<SearchTrend[]>([]);
@@ -59,13 +66,29 @@ const Analytics = () => {
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [timeRange]);
+  }, [timeRange, customStartDate, customEndDate]);
 
   const getDateRange = () => {
+    if (timeRange === "custom" && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
+    }
+    
     const now = new Date();
     const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     return { startDate: startDate.toISOString(), endDate: now.toISOString() };
+  };
+
+  const handleTimeRangeChange = (value: string) => {
+    setTimeRange(value);
+    if (value !== "custom") {
+      setCustomStartDate(undefined);
+      setCustomEndDate(undefined);
+    }
   };
 
   const fetchAnalyticsData = async () => {
@@ -303,16 +326,75 @@ const Analytics = () => {
             </div>
           </div>
 
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={timeRange} onValueChange={handleTimeRangeChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {timeRange === "custom" && (
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[140px] justify-start text-left font-normal",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(customStartDate, "MMM d, yyyy") : "Start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={setCustomStartDate}
+                      disabled={(date) => date > new Date() || (customEndDate ? date > customEndDate : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <span className="text-muted-foreground">to</span>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[140px] justify-start text-left font-normal",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(customEndDate, "MMM d, yyyy") : "End date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={setCustomEndDate}
+                      disabled={(date) => date > new Date() || (customStartDate ? date < customStartDate : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
