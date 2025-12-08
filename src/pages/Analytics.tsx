@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { 
   Eye, MousePointerClick, ShoppingCart, CreditCard, 
-  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon
+  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -57,6 +57,8 @@ const Analytics = () => {
   const [searchTrends, setSearchTrends] = useState<SearchTrend[]>([]);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [stats, setStats] = useState({
     totalPageViews: 0,
     uniqueSessions: 0,
@@ -64,9 +66,25 @@ const Analytics = () => {
     bounceRate: 0,
   });
 
-  useEffect(() => {
+  const refreshData = useCallback(() => {
     fetchAnalyticsData();
+    setLastRefresh(new Date());
   }, [timeRange, customStartDate, customEndDate]);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      refreshData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshData]);
 
   const getDateRange = () => {
     if (timeRange === "custom" && customStartDate && customEndDate) {
@@ -327,6 +345,34 @@ const Analytics = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Auto-refresh indicator */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={cn(
+                  "gap-2",
+                  autoRefresh && "text-secondary"
+                )}
+              >
+                <RefreshCw className={cn("h-4 w-4", autoRefresh && "animate-spin")} style={{ animationDuration: '3s' }} />
+                {autoRefresh ? "Auto-refresh ON" : "Auto-refresh OFF"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshData}
+                disabled={loading}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                Refresh
+              </Button>
+              <span className="text-xs hidden sm:inline">
+                Last: {lastRefresh.toLocaleTimeString()}
+              </span>
+            </div>
+
             <Select value={timeRange} onValueChange={handleTimeRangeChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select time range" />
