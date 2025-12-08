@@ -8,10 +8,12 @@ import {
 } from "recharts";
 import { 
   Eye, MousePointerClick, ShoppingCart, CreditCard, 
-  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw, GitCompare
+  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw, GitCompare, Flame
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ScrollDepthHeatmap } from "@/components/analytics/ScrollDepthHeatmap";
+import { ClickHeatmap } from "@/components/analytics/ClickHeatmap";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -694,10 +696,14 @@ const Analytics = () => {
 
         {/* Main Charts */}
         <Tabs defaultValue="pageviews" className="space-y-6">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-3 lg:grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="pageviews" className="gap-2">
               <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">Page Views</span>
+            </TabsTrigger>
+            <TabsTrigger value="heatmaps" className="gap-2">
+              <Flame className="h-4 w-4" />
+              <span className="hidden sm:inline">Heatmaps</span>
             </TabsTrigger>
             <TabsTrigger value="products" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
@@ -884,6 +890,14 @@ const Analytics = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Heatmaps Tab */}
+          <TabsContent value="heatmaps" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ScrollDepthHeatmap data={[]} />
+              <ClickHeatmap data={[]} />
+            </div>
           </TabsContent>
 
           {/* Products Tab */}
