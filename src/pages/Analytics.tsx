@@ -8,8 +8,10 @@ import {
 } from "recharts";
 import { 
   Eye, MousePointerClick, ShoppingCart, CreditCard, 
-  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw
+  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw, GitCompare
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,6 +61,19 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  
+  // Comparison mode state
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [comparisonStartDate, setComparisonStartDate] = useState<Date | undefined>(undefined);
+  const [comparisonEndDate, setComparisonEndDate] = useState<Date | undefined>(undefined);
+  const [comparisonPageViews, setComparisonPageViews] = useState<PageViewData[]>([]);
+  const [comparisonStats, setComparisonStats] = useState({
+    totalPageViews: 0,
+    uniqueSessions: 0,
+    avgTimeOnPage: 0,
+    bounceRate: 0,
+  });
+  
   const [stats, setStats] = useState({
     totalPageViews: 0,
     uniqueSessions: 0,
@@ -68,8 +83,11 @@ const Analytics = () => {
 
   const refreshData = useCallback(() => {
     fetchAnalyticsData();
+    if (comparisonMode && comparisonStartDate && comparisonEndDate) {
+      fetchComparisonData();
+    }
     setLastRefresh(new Date());
-  }, [timeRange, customStartDate, customEndDate]);
+  }, [timeRange, customStartDate, customEndDate, comparisonMode, comparisonStartDate, comparisonEndDate]);
 
   useEffect(() => {
     refreshData();
@@ -85,6 +103,13 @@ const Analytics = () => {
 
     return () => clearInterval(interval);
   }, [autoRefresh, refreshData]);
+
+  // Fetch comparison data when dates change
+  useEffect(() => {
+    if (comparisonMode && comparisonStartDate && comparisonEndDate) {
+      fetchComparisonData();
+    }
+  }, [comparisonMode, comparisonStartDate, comparisonEndDate]);
 
   const getDateRange = () => {
     if (timeRange === "custom" && customStartDate && customEndDate) {
@@ -106,6 +131,51 @@ const Analytics = () => {
     if (value !== "custom") {
       setCustomStartDate(undefined);
       setCustomEndDate(undefined);
+    }
+  };
+
+  const fetchComparisonData = async () => {
+    if (!comparisonStartDate || !comparisonEndDate) return;
+    
+    const start = new Date(comparisonStartDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(comparisonEndDate);
+    end.setHours(23, 59, 59, 999);
+    
+    try {
+      const { data: pageViewsData } = await supabase
+        .from("analytics_page_views")
+        .select("*")
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString());
+
+      const { data: sessionsData } = await supabase
+        .from("analytics_sessions")
+        .select("*")
+        .gte("started_at", start.toISOString())
+        .lte("started_at", end.toISOString());
+
+      const viewsByDate = processPageViewsByDate(pageViewsData || []);
+      setComparisonPageViews(viewsByDate);
+
+      const uniqueSessions = new Set((pageViewsData || []).map(pv => pv.session_id)).size;
+      const avgTime = (pageViewsData || [])
+        .filter(pv => pv.time_on_page_ms)
+        .reduce((sum, pv) => sum + (pv.time_on_page_ms || 0), 0) / ((pageViewsData || []).length || 1);
+      
+      const bounceSessions = (sessionsData || []).filter(s => s.is_bounce).length;
+      const bounceRate = ((sessionsData || []).length > 0) 
+        ? (bounceSessions / (sessionsData || []).length) * 100 
+        : 0;
+
+      setComparisonStats({
+        totalPageViews: (pageViewsData || []).length,
+        uniqueSessions,
+        avgTimeOnPage: Math.round(avgTime / 1000),
+        bounceRate: Math.round(bounceRate),
+      });
+    } catch (error) {
+      console.error("Error fetching comparison data:", error);
     }
   };
 
@@ -443,6 +513,78 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* Comparison Mode Toggle */}
+        <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-lg bg-muted/50 border">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="comparison-mode"
+              checked={comparisonMode}
+              onCheckedChange={setComparisonMode}
+            />
+            <Label htmlFor="comparison-mode" className="flex items-center gap-2 cursor-pointer">
+              <GitCompare className="h-4 w-4" />
+              Compare Periods
+            </Label>
+          </div>
+
+          {comparisonMode && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Compare with:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !comparisonStartDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {comparisonStartDate ? format(comparisonStartDate, "MMM d") : "Start"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={comparisonStartDate}
+                    onSelect={setComparisonStartDate}
+                    disabled={(date) => date > new Date() || (comparisonEndDate ? date > comparisonEndDate : false)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground">to</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !comparisonEndDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {comparisonEndDate ? format(comparisonEndDate, "MMM d") : "End"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={comparisonEndDate}
+                    onSelect={setComparisonEndDate}
+                    disabled={(date) => date > new Date() || (comparisonStartDate ? date < comparisonStartDate : false)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
@@ -454,9 +596,20 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{displayStats.totalPageViews.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-secondary">+12.5%</span> vs previous period
-              </p>
+              {comparisonMode && comparisonStats.totalPageViews > 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className={cn(
+                    displayStats.totalPageViews >= comparisonStats.totalPageViews ? "text-secondary" : "text-destructive"
+                  )}>
+                    {displayStats.totalPageViews >= comparisonStats.totalPageViews ? "+" : ""}
+                    {Math.round(((displayStats.totalPageViews - comparisonStats.totalPageViews) / comparisonStats.totalPageViews) * 100)}%
+                  </span> vs comparison ({comparisonStats.totalPageViews.toLocaleString()})
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-secondary">+12.5%</span> vs previous period
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -469,9 +622,20 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{displayStats.uniqueSessions.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-secondary">+8.3%</span> vs previous period
-              </p>
+              {comparisonMode && comparisonStats.uniqueSessions > 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className={cn(
+                    displayStats.uniqueSessions >= comparisonStats.uniqueSessions ? "text-secondary" : "text-destructive"
+                  )}>
+                    {displayStats.uniqueSessions >= comparisonStats.uniqueSessions ? "+" : ""}
+                    {Math.round(((displayStats.uniqueSessions - comparisonStats.uniqueSessions) / comparisonStats.uniqueSessions) * 100)}%
+                  </span> vs comparison ({comparisonStats.uniqueSessions.toLocaleString()})
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-secondary">+8.3%</span> vs previous period
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -484,9 +648,20 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{displayStats.avgTimeOnPage}s</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-secondary">+5.1%</span> vs previous period
-              </p>
+              {comparisonMode && comparisonStats.avgTimeOnPage > 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className={cn(
+                    displayStats.avgTimeOnPage >= comparisonStats.avgTimeOnPage ? "text-secondary" : "text-destructive"
+                  )}>
+                    {displayStats.avgTimeOnPage >= comparisonStats.avgTimeOnPage ? "+" : ""}
+                    {Math.round(((displayStats.avgTimeOnPage - comparisonStats.avgTimeOnPage) / comparisonStats.avgTimeOnPage) * 100)}%
+                  </span> vs comparison ({comparisonStats.avgTimeOnPage}s)
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-secondary">+5.1%</span> vs previous period
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -499,9 +674,20 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{displayStats.bounceRate}%</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-destructive">-2.1%</span> vs previous period
-              </p>
+              {comparisonMode && comparisonStats.bounceRate > 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className={cn(
+                    displayStats.bounceRate <= comparisonStats.bounceRate ? "text-secondary" : "text-destructive"
+                  )}>
+                    {displayStats.bounceRate <= comparisonStats.bounceRate ? "" : "+"}
+                    {Math.round(((displayStats.bounceRate - comparisonStats.bounceRate) / comparisonStats.bounceRate) * 100)}%
+                  </span> vs comparison ({comparisonStats.bounceRate}%)
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-destructive">-2.1%</span> vs previous period
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -529,57 +715,175 @@ const Analytics = () => {
 
           {/* Page Views Tab */}
           <TabsContent value="pageviews" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Page Views Over Time</CardTitle>
-                <CardDescription>Daily page views and unique visitors</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={displayPageViews}>
-                      <defs>
-                        <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="date" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: "hsl(var(--card))", 
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px"
-                        }}
-                      />
-                      <Legend />
-                      <Area 
-                        type="monotone" 
-                        dataKey="views" 
-                        stroke="hsl(var(--primary))" 
-                        fillOpacity={1}
-                        fill="url(#colorViews)"
-                        name="Page Views"
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="uniqueVisitors" 
-                        stroke="hsl(var(--secondary))" 
-                        fillOpacity={1}
-                        fill="url(#colorVisitors)"
-                        name="Unique Visitors"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            {comparisonMode && comparisonPageViews.length > 0 ? (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                      Current Period
+                    </CardTitle>
+                    <CardDescription>Daily page views and unique visitors</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={displayPageViews}>
+                          <defs>
+                            <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="date" className="text-xs" />
+                          <YAxis className="text-xs" />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: "hsl(var(--card))", 
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px"
+                            }}
+                          />
+                          <Legend />
+                          <Area 
+                            type="monotone" 
+                            dataKey="views" 
+                            stroke="hsl(var(--primary))" 
+                            fillOpacity={1}
+                            fill="url(#colorViews)"
+                            name="Page Views"
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="uniqueVisitors" 
+                            stroke="hsl(var(--secondary))" 
+                            fillOpacity={1}
+                            fill="url(#colorVisitors)"
+                            name="Unique Visitors"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                      Comparison Period
+                    </CardTitle>
+                    <CardDescription>
+                      {comparisonStartDate && comparisonEndDate 
+                        ? `${format(comparisonStartDate, "MMM d")} - ${format(comparisonEndDate, "MMM d, yyyy")}`
+                        : "Select comparison dates"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={comparisonPageViews}>
+                          <defs>
+                            <linearGradient id="colorViewsCompare" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorVisitorsCompare" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="date" className="text-xs" />
+                          <YAxis className="text-xs" />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: "hsl(var(--card))", 
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px"
+                            }}
+                          />
+                          <Legend />
+                          <Area 
+                            type="monotone" 
+                            dataKey="views" 
+                            stroke="hsl(var(--muted-foreground))" 
+                            fillOpacity={1}
+                            fill="url(#colorViewsCompare)"
+                            name="Page Views"
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="uniqueVisitors" 
+                            stroke="hsl(var(--accent))" 
+                            fillOpacity={1}
+                            fill="url(#colorVisitorsCompare)"
+                            name="Unique Visitors"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Page Views Over Time</CardTitle>
+                  <CardDescription>Daily page views and unique visitors</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={displayPageViews}>
+                        <defs>
+                          <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Legend />
+                        <Area 
+                          type="monotone" 
+                          dataKey="views" 
+                          stroke="hsl(var(--primary))" 
+                          fillOpacity={1}
+                          fill="url(#colorViews)"
+                          name="Page Views"
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="uniqueVisitors" 
+                          stroke="hsl(var(--secondary))" 
+                          fillOpacity={1}
+                          fill="url(#colorVisitors)"
+                          name="Unique Visitors"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Products Tab */}
