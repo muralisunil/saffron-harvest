@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollDepthHeatmap } from "@/components/analytics/ScrollDepthHeatmap";
 import { ClickHeatmap } from "@/components/analytics/ClickHeatmap";
 import { VisitorMap } from "@/components/analytics/VisitorMap";
+import { GeographyBreakdown } from "@/components/analytics/GeographyBreakdown";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -923,8 +924,9 @@ const Analytics = () => {
           </TabsContent>
 
           {/* Visitors Tab */}
-          <TabsContent value="visitors" className="space-y-6">
+          <TabsContent value="visitors" className="space-y-8">
             <VisitorMap mapboxToken={mapboxToken} />
+            <GeographyBreakdown />
           </TabsContent>
 
           {/* Heatmaps Tab */}
