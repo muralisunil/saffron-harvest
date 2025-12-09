@@ -8,12 +8,13 @@ import {
 } from "recharts";
 import { 
   Eye, MousePointerClick, ShoppingCart, CreditCard, 
-  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw, GitCompare, Flame
+  TrendingUp, Search, ArrowLeft, Users, Clock, Target, CalendarIcon, RefreshCw, GitCompare, Flame, Globe
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollDepthHeatmap } from "@/components/analytics/ScrollDepthHeatmap";
 import { ClickHeatmap } from "@/components/analytics/ClickHeatmap";
+import { VisitorMap } from "@/components/analytics/VisitorMap";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -82,6 +83,8 @@ const Analytics = () => {
     avgTimeOnPage: 0,
     bounceRate: 0,
   });
+  
+  const [mapboxToken, setMapboxToken] = useState<string>('');
 
   const refreshData = useCallback(() => {
     fetchAnalyticsData();
@@ -112,6 +115,29 @@ const Analytics = () => {
       fetchComparisonData();
     }
   }, [comparisonMode, comparisonStartDate, comparisonEndDate]);
+
+  // Fetch Mapbox token
+  useEffect(() => {
+    const fetchMapboxToken = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-mapbox-token`,
+          {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setMapboxToken(data.token || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch Mapbox token:', error);
+      }
+    };
+    fetchMapboxToken();
+  }, []);
 
   const getDateRange = () => {
     if (timeRange === "custom" && customStartDate && customEndDate) {
@@ -696,10 +722,14 @@ const Analytics = () => {
 
         {/* Main Charts */}
         <Tabs defaultValue="pageviews" className="space-y-6">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-5 w-full max-w-3xl">
+          <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full max-w-4xl">
             <TabsTrigger value="pageviews" className="gap-2">
               <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">Page Views</span>
+            </TabsTrigger>
+            <TabsTrigger value="visitors" className="gap-2">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Visitors</span>
             </TabsTrigger>
             <TabsTrigger value="heatmaps" className="gap-2">
               <Flame className="h-4 w-4" />
@@ -890,6 +920,11 @@ const Analytics = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Visitors Tab */}
+          <TabsContent value="visitors" className="space-y-6">
+            <VisitorMap mapboxToken={mapboxToken} />
           </TabsContent>
 
           {/* Heatmaps Tab */}
