@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 import { OrderDetails } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCartSession } from "@/hooks/useCartSession";
 import { Loader2 } from "lucide-react";
 
 const Checkout = () => {
@@ -18,6 +19,13 @@ const Checkout = () => {
   const { items, getCartTotal, clearCart } = useCart();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const subtotal = getCartTotal();
+  const shipping = subtotal > 500 ? 0 : 50;
+  const total = subtotal + shipping;
+
+  const { syncCartSession, markCheckoutStarted, markCheckoutAbandoned, markCheckoutCompleted } = 
+    useCartSession(items, total);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,9 +37,39 @@ const Checkout = () => {
     pincode: "",
   });
 
-  const subtotal = getCartTotal();
-  const shipping = subtotal > 500 ? 0 : 50;
-  const total = subtotal + shipping;
+  // Track checkout started and sync cart session on mount
+  useEffect(() => {
+    if (items.length > 0) {
+      syncCartSession();
+      markCheckoutStarted();
+    }
+
+    // Track abandonment on unmount (if not completed)
+    return () => {
+      if (items.length > 0 && !isProcessing) {
+        markCheckoutAbandoned();
+      }
+    };
+  }, []);
+
+  // Handle page unload/close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (items.length > 0 && !isProcessing) {
+        // Use sendBeacon for reliable tracking on page close
+        const sessionId = localStorage.getItem('analytics_session_id');
+        if (sessionId) {
+          navigator.sendBeacon?.(
+            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/cart_sessions?session_id=eq.${JSON.parse(sessionId).id}&checkout_started=eq.true&checkout_completed=eq.false`,
+            JSON.stringify({ abandoned: true, abandoned_at: new Date().toISOString() })
+          );
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [items.length, isProcessing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +87,9 @@ const Checkout = () => {
       if (error) throw error;
 
       if (data?.url) {
+        // Mark checkout as completed before redirecting
+        await markCheckoutCompleted();
+
         // Save order info before redirecting
         const order: OrderDetails = {
           orderId: `ORD${Date.now()}`,
