@@ -305,6 +305,7 @@ export type Database = {
           id: string
           recovered: boolean | null
           recovered_at: string | null
+          recovery_email_sent_at: string | null
           session_id: string
           updated_at: string
           user_id: string | null
@@ -320,6 +321,7 @@ export type Database = {
           id?: string
           recovered?: boolean | null
           recovered_at?: string | null
+          recovery_email_sent_at?: string | null
           session_id: string
           updated_at?: string
           user_id?: string | null
@@ -335,6 +337,7 @@ export type Database = {
           id?: string
           recovered?: boolean | null
           recovered_at?: string | null
+          recovery_email_sent_at?: string | null
           session_id?: string
           updated_at?: string
           user_id?: string | null
