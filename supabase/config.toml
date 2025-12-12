@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-cart-recovery]
 verify_jwt = false
+
+[functions.auto-cart-recovery]
+verify_jwt = false
