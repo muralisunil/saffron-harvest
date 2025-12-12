@@ -19,6 +19,7 @@ import { GeographyBreakdown } from "@/components/analytics/GeographyBreakdown";
 import { RealtimeNotifications } from "@/components/analytics/RealtimeNotifications";
 import { CartAbandonmentWidget } from "@/components/analytics/CartAbandonmentWidget";
 import { CartRecoveryManager } from "@/components/analytics/CartRecoveryManager";
+import { RecoveryEmailStats } from "@/components/analytics/RecoveryEmailStats";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1051,6 +1052,10 @@ const Analytics = () => {
             <CartAbandonmentWidget 
               startDate={getDateRange().startDate} 
               endDate={getDateRange().endDate} 
+            />
+            <RecoveryEmailStats
+              startDate={getDateRange().startDate}
+              endDate={getDateRange().endDate}
             />
             <CartRecoveryManager />
           </TabsContent>
