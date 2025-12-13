@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface RecoveryStats {
   totalEmailsSent: number;
+  totalSecondEmailsSent: number;
   totalRecovered: number;
   recoveryRate: number;
   revenueRecovered: number;
@@ -35,6 +36,7 @@ interface RecoveryEmailStatsProps {
 export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsProps) => {
   const [stats, setStats] = useState<RecoveryStats>({
     totalEmailsSent: 0,
+    totalSecondEmailsSent: 0,
     totalRecovered: 0,
     recoveryRate: 0,
     revenueRecovered: 0,
@@ -76,6 +78,7 @@ export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsPro
       if (cartSessions) {
         // Filter carts with recovery emails sent
         const emailsSent = cartSessions.filter(c => c.recovery_email_sent_at);
+        const secondEmailsSent = cartSessions.filter(c => (c as any).recovery_email_2_sent_at);
         const recovered = cartSessions.filter(c => c.recovered);
         const pendingRecovery = emailsSent.filter(c => !c.recovered && !c.checkout_completed);
         
@@ -107,6 +110,7 @@ export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsPro
 
         setStats({
           totalEmailsSent: emailsSent.length,
+          totalSecondEmailsSent: secondEmailsSent.length,
           totalRecovered: recovered.length,
           recoveryRate,
           revenueRecovered,
@@ -187,6 +191,7 @@ export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsPro
   // Mock data for demo when no real data exists
   const mockStats: RecoveryStats = {
     totalEmailsSent: 87,
+    totalSecondEmailsSent: 34,
     totalRecovered: 23,
     recoveryRate: 26,
     revenueRecovered: 8420,
@@ -236,7 +241,7 @@ export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsPro
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
@@ -244,7 +249,19 @@ export const RecoveryEmailStats = ({ startDate, endDate }: RecoveryEmailStatsPro
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <p className="text-2xl font-bold">{displayStats.totalEmailsSent}</p>
-              <p className="text-xs text-muted-foreground">Emails Sent</p>
+              <p className="text-xs text-muted-foreground">1st Emails</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="p-2 rounded-lg bg-orange-500/10 mb-2">
+                <Mail className="h-5 w-5 text-orange-500" />
+              </div>
+              <p className="text-2xl font-bold">{displayStats.totalSecondEmailsSent}</p>
+              <p className="text-xs text-muted-foreground">2nd Emails (20% off)</p>
             </div>
           </CardContent>
         </Card>
