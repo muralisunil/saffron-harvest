@@ -344,6 +344,44 @@ export type Database = {
         }
         Relationships: []
       }
+      email_tracking_events: {
+        Row: {
+          cart_session_id: string | null
+          created_at: string
+          email_id: string
+          event_type: string
+          id: string
+          properties: Json | null
+          recipient_email: string | null
+        }
+        Insert: {
+          cart_session_id?: string | null
+          created_at?: string
+          email_id: string
+          event_type: string
+          id?: string
+          properties?: Json | null
+          recipient_email?: string | null
+        }
+        Update: {
+          cart_session_id?: string | null
+          created_at?: string
+          email_id?: string
+          event_type?: string
+          id?: string
+          properties?: Json | null
+          recipient_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_tracking_events_cart_session_id_fkey"
+            columns: ["cart_session_id"]
+            isOneToOne: false
+            referencedRelation: "cart_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           added_at: string
