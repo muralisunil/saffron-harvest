@@ -28,10 +28,28 @@ interface CartSession {
   recovery_email_2_sent_at: string | null;
 }
 
-// Configuration
-const FIRST_EMAIL_THRESHOLD_HOURS = 1; // Send first recovery email after 1 hour
-const SECOND_EMAIL_THRESHOLD_HOURS = 24; // Send second email 24 hours after first
+interface RecoverySettings {
+  abandonment_threshold_minutes: number;
+  first_email_discount_code: string;
+  first_email_discount_percent: number;
+  second_email_delay_hours: number;
+  second_email_discount_code: string;
+  second_email_discount_percent: number;
+  enabled: boolean;
+}
+
 const STORE_NAME = "Desi Pantry";
+
+// Default settings fallback
+const DEFAULT_SETTINGS: RecoverySettings = {
+  abandonment_threshold_minutes: 60,
+  first_email_discount_code: "COMEBACK10",
+  first_email_discount_percent: 10,
+  second_email_delay_hours: 24,
+  second_email_discount_code: "COMEBACK20",
+  second_email_discount_percent: 20,
+  enabled: true,
+};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -49,6 +67,25 @@ serve(async (req) => {
 
     const siteUrl = Deno.env.get("SITE_URL") || "https://your-site.lovable.app";
 
+    // Fetch configurable settings from database
+    const { data: settingsData } = await supabase
+      .from("recovery_email_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    const settings: RecoverySettings = settingsData || DEFAULT_SETTINGS;
+    console.log("Using settings:", settings);
+
+    // Check if recovery emails are enabled
+    if (!settings.enabled) {
+      console.log("Recovery emails are disabled. Exiting.");
+      return new Response(
+        JSON.stringify({ success: true, message: "Recovery emails are disabled" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const results = {
       processed: 0,
       firstEmailsSent: 0,
@@ -57,9 +94,9 @@ serve(async (req) => {
       errors: [] as string[],
     };
 
-    // ========== FIRST EMAIL: 1 hour after abandonment ==========
+    // ========== FIRST EMAIL: After abandonment threshold ==========
     const firstThresholdTime = new Date();
-    firstThresholdTime.setHours(firstThresholdTime.getHours() - FIRST_EMAIL_THRESHOLD_HOURS);
+    firstThresholdTime.setMinutes(firstThresholdTime.getMinutes() - settings.abandonment_threshold_minutes);
 
     console.log("Looking for carts for FIRST email (abandoned before):", firstThresholdTime.toISOString());
 
@@ -94,6 +131,8 @@ serve(async (req) => {
             userEmail,
             siteUrl,
             isSecondEmail: false,
+            discountCode: settings.first_email_discount_code,
+            discountPercent: settings.first_email_discount_percent,
           });
 
           await supabase
@@ -113,9 +152,9 @@ serve(async (req) => {
       }
     }
 
-    // ========== SECOND EMAIL: 24 hours after first email ==========
+    // ========== SECOND EMAIL: After configured delay ==========
     const secondThresholdTime = new Date();
-    secondThresholdTime.setHours(secondThresholdTime.getHours() - SECOND_EMAIL_THRESHOLD_HOURS);
+    secondThresholdTime.setHours(secondThresholdTime.getHours() - settings.second_email_delay_hours);
 
     console.log("Looking for carts for SECOND email (first sent before):", secondThresholdTime.toISOString());
 
@@ -152,6 +191,8 @@ serve(async (req) => {
             userEmail,
             siteUrl,
             isSecondEmail: true,
+            discountCode: settings.second_email_discount_code,
+            discountPercent: settings.second_email_discount_percent,
           });
 
           await supabase
@@ -220,22 +261,23 @@ async function sendRecoveryEmail(
     userEmail: string;
     siteUrl: string;
     isSecondEmail: boolean;
+    discountCode: string;
+    discountPercent: number;
   }
 ) {
-  const { cart, userEmail, siteUrl, isSecondEmail } = options;
+  const { cart, userEmail, siteUrl, isSecondEmail, discountCode, discountPercent } = options;
   const cartItems = cart.cart_items as CartItem[];
 
   // Different messaging for first vs second email
-  const discountCode = isSecondEmail ? "COMEBACK20" : "COMEBACK10";
-  const discountPercent = isSecondEmail ? "20%" : "10%";
+  const discountPercentStr = `${discountPercent}%`;
   const subject = isSecondEmail
-    ? `⏰ Last chance! Your cart expires soon - Get ${discountPercent} OFF!`
+    ? `⏰ Last chance! Your cart expires soon - Get ${discountPercentStr} OFF!`
     : `You left items in your cart at ${STORE_NAME}!`;
   const headerText = isSecondEmail
     ? "Last chance to save!"
     : "Don't forget your items!";
   const subHeaderText = isSecondEmail
-    ? `We're giving you an EXTRA ${discountPercent} OFF to complete your order`
+    ? `We're giving you an EXTRA ${discountPercentStr} OFF to complete your order`
     : "Your cart is waiting for you";
 
   const cartItemsHtml = cartItems
@@ -256,7 +298,7 @@ async function sendRecoveryEmail(
   const urgencyBanner = isSecondEmail
     ? `
       <div style="background-color: #FF4444; color: white; padding: 12px; text-align: center; border-radius: 8px; margin-bottom: 20px;">
-        <strong>⚡ LIMITED TIME: Extra ${discountPercent} OFF expires in 24 hours!</strong>
+        <strong>⚡ LIMITED TIME: Extra ${discountPercentStr} OFF expires in 24 hours!</strong>
       </div>
     `
     : "";
@@ -316,7 +358,7 @@ async function sendRecoveryEmail(
 
           <div style="background-color: ${isSecondEmail ? "#FFF3CD" : "#f8f8f8"}; padding: 20px; border-radius: 8px; margin-bottom: 30px; ${isSecondEmail ? "border: 2px dashed #FF8C00;" : ""}">
             <p style="color: ${isSecondEmail ? "#856404" : "#666"}; font-size: ${isSecondEmail ? "16px" : "14px"}; margin: 0; text-align: center; font-weight: ${isSecondEmail ? "600" : "normal"};">
-              🎁 Use code <strong style="color: #FF8C00; font-size: 18px;">${discountCode}</strong> for ${discountPercent} off your order!
+              🎁 Use code <strong style="color: #FF8C00; font-size: 18px;">${discountCode}</strong> for ${discountPercentStr} off your order!
               ${isSecondEmail ? "<br><span style='font-size: 12px; color: #666;'>This is our best offer - don't miss out!</span>" : ""}
             </p>
           </div>

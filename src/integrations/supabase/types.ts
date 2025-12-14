@@ -596,6 +596,45 @@ export type Database = {
         }
         Relationships: []
       }
+      recovery_email_settings: {
+        Row: {
+          abandonment_threshold_minutes: number
+          created_at: string
+          enabled: boolean
+          first_email_discount_code: string
+          first_email_discount_percent: number
+          id: string
+          second_email_delay_hours: number
+          second_email_discount_code: string
+          second_email_discount_percent: number
+          updated_at: string
+        }
+        Insert: {
+          abandonment_threshold_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          first_email_discount_code?: string
+          first_email_discount_percent?: number
+          id?: string
+          second_email_delay_hours?: number
+          second_email_discount_code?: string
+          second_email_discount_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          abandonment_threshold_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          first_email_discount_code?: string
+          first_email_discount_percent?: number
+          id?: string
+          second_email_delay_hours?: number
+          second_email_discount_code?: string
+          second_email_discount_percent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
