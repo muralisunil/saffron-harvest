@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import RecoveryEmailSettings from "@/components/admin/RecoveryEmailSettings";
 
 const Admin = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -230,6 +231,11 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Recovery Email Settings */}
+        <div className="mt-6">
+          <RecoveryEmailSettings />
+        </div>
       </main>
 
       <Footer />
