@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Mail, Clock, Percent, Tag, Power } from "lucide-react";
+import { Settings, Mail, Clock, Percent, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
+import EmailTemplatePreview from "./EmailTemplatePreview";
 interface RecoverySettings {
   id: string;
   abandonment_threshold_minutes: number;
@@ -242,10 +242,16 @@ const RecoveryEmailSettings = () => {
           </div>
         </div>
 
-        <div className="border-t pt-6">
-          <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
+        <div className="border-t pt-6 flex flex-wrap gap-3">
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save Settings"}
           </Button>
+          <EmailTemplatePreview
+            firstEmailDiscountCode={settings.first_email_discount_code}
+            firstEmailDiscountPercent={settings.first_email_discount_percent}
+            secondEmailDiscountCode={settings.second_email_discount_code}
+            secondEmailDiscountPercent={settings.second_email_discount_percent}
+          />
         </div>
       </CardContent>
     </Card>
