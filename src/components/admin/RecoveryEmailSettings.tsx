@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import EmailTemplatePreview from "./EmailTemplatePreview";
+import { ABTestManager } from "./ABTestManager";
 interface RecoverySettings {
   id: string;
   abandonment_threshold_minutes: number;
@@ -252,6 +253,10 @@ const RecoveryEmailSettings = () => {
             secondEmailDiscountCode={settings.second_email_discount_code}
             secondEmailDiscountPercent={settings.second_email_discount_percent}
           />
+        </div>
+
+        <div className="border-t pt-6">
+          <ABTestManager />
         </div>
       </CardContent>
     </Card>
