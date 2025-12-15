@@ -26,6 +26,7 @@ interface CartSession {
   user_id: string | null;
   recovery_email_sent_at: string | null;
   recovery_email_2_sent_at: string | null;
+  ab_variant_id: string | null;
 }
 
 interface RecoverySettings {
@@ -36,6 +37,45 @@ interface RecoverySettings {
   second_email_discount_code: string;
   second_email_discount_percent: number;
   enabled: boolean;
+}
+
+interface ABTestVariant {
+  id: string;
+  test_id: string;
+  name: string;
+  subject_line: string;
+  discount_percent: number;
+  discount_code: string;
+  weight: number;
+  emails_sent: number;
+}
+
+interface ABTest {
+  id: string;
+  name: string;
+  email_type: string;
+  status: string;
+  winning_variant_id: string | null;
+}
+
+// Helper function to select variant by weight
+function selectVariantByWeight(variants: ABTestVariant[]): ABTestVariant | null {
+  if (variants.length === 0) return null;
+  
+  const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
+  if (totalWeight === 0) return variants[0];
+  
+  const random = Math.random() * totalWeight;
+  let cumulative = 0;
+  
+  for (const variant of variants) {
+    cumulative += variant.weight;
+    if (random <= cumulative) {
+      return variant;
+    }
+  }
+  
+  return variants[variants.length - 1];
 }
 
 const STORE_NAME = "Desi Pantry";
@@ -94,6 +134,35 @@ serve(async (req) => {
       errors: [] as string[],
     };
 
+    // Fetch active A/B tests
+    const { data: abTests } = await supabase
+      .from("email_ab_tests")
+      .select("*")
+      .in("status", ["active", "completed"]);
+
+    const activeFirstTest = (abTests || []).find((t: ABTest) => t.email_type === "first_recovery" && (t.status === "active" || t.status === "completed"));
+    const activeSecondTest = (abTests || []).find((t: ABTest) => t.email_type === "second_recovery" && (t.status === "active" || t.status === "completed"));
+
+    // Fetch variants for active tests
+    let firstTestVariants: ABTestVariant[] = [];
+    let secondTestVariants: ABTestVariant[] = [];
+
+    if (activeFirstTest) {
+      const { data } = await supabase
+        .from("email_ab_test_variants")
+        .select("*")
+        .eq("test_id", activeFirstTest.id);
+      firstTestVariants = data || [];
+    }
+
+    if (activeSecondTest) {
+      const { data } = await supabase
+        .from("email_ab_test_variants")
+        .select("*")
+        .eq("test_id", activeSecondTest.id);
+      secondTestVariants = data || [];
+    }
+
     // ========== FIRST EMAIL: After abandonment threshold ==========
     const firstThresholdTime = new Date();
     firstThresholdTime.setMinutes(firstThresholdTime.getMinutes() - settings.abandonment_threshold_minutes);
@@ -125,14 +194,35 @@ serve(async (req) => {
           continue;
         }
 
+        // Select A/B test variant if available
+        let discountCode = settings.first_email_discount_code;
+        let discountPercent = settings.first_email_discount_percent;
+        let subjectLine: string | undefined;
+        let selectedVariantId: string | null = null;
+
+        if (activeFirstTest && firstTestVariants.length > 0) {
+          const variant = activeFirstTest.winning_variant_id
+            ? firstTestVariants.find((v: ABTestVariant) => v.id === activeFirstTest.winning_variant_id)
+            : selectVariantByWeight(firstTestVariants);
+          
+          if (variant) {
+            discountCode = variant.discount_code;
+            discountPercent = variant.discount_percent;
+            subjectLine = variant.subject_line;
+            selectedVariantId = variant.id;
+            console.log(`Using A/B variant: ${variant.name} for cart ${cart.id}`);
+          }
+        }
+
         try {
           await sendRecoveryEmail(resend, {
             cart,
             userEmail,
             siteUrl,
             isSecondEmail: false,
-            discountCode: settings.first_email_discount_code,
-            discountPercent: settings.first_email_discount_percent,
+            discountCode,
+            discountPercent,
+            subjectLine,
           });
 
           await supabase
@@ -140,8 +230,20 @@ serve(async (req) => {
             .update({
               recovery_email_sent_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
+              ab_variant_id: selectedVariantId,
             })
             .eq("id", cart.id);
+
+          // Increment variant emails_sent counter
+          if (selectedVariantId) {
+            const currentVariant = firstTestVariants.find((v: ABTestVariant) => v.id === selectedVariantId);
+            if (currentVariant) {
+              await supabase
+                .from("email_ab_test_variants")
+                .update({ emails_sent: currentVariant.emails_sent + 1 })
+                .eq("id", selectedVariantId);
+            }
+          }
 
           results.firstEmailsSent++;
           console.log(`First recovery email sent to ${userEmail} for cart ${cart.id}`);
@@ -263,16 +365,18 @@ async function sendRecoveryEmail(
     isSecondEmail: boolean;
     discountCode: string;
     discountPercent: number;
+    subjectLine?: string;
   }
 ) {
-  const { cart, userEmail, siteUrl, isSecondEmail, discountCode, discountPercent } = options;
+  const { cart, userEmail, siteUrl, isSecondEmail, discountCode, discountPercent, subjectLine } = options;
   const cartItems = cart.cart_items as CartItem[];
 
   // Different messaging for first vs second email
   const discountPercentStr = `${discountPercent}%`;
-  const subject = isSecondEmail
+  const defaultSubject = isSecondEmail
     ? `⏰ Last chance! Your cart expires soon - Get ${discountPercentStr} OFF!`
     : `You left items in your cart at ${STORE_NAME}!`;
+  const subject = subjectLine || defaultSubject;
   const headerText = isSecondEmail
     ? "Last chance to save!"
     : "Don't forget your items!";

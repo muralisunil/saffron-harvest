@@ -295,6 +295,7 @@ export type Database = {
       }
       cart_sessions: {
         Row: {
+          ab_variant_id: string | null
           abandoned: boolean | null
           abandoned_at: string | null
           cart_items: Json
@@ -312,6 +313,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ab_variant_id?: string | null
           abandoned?: boolean | null
           abandoned_at?: string | null
           cart_items?: Json
@@ -329,6 +331,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ab_variant_id?: string | null
           abandoned?: boolean | null
           abandoned_at?: string | null
           cart_items?: Json
@@ -344,6 +347,97 @@ export type Database = {
           session_id?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_sessions_ab_variant_id_fkey"
+            columns: ["ab_variant_id"]
+            isOneToOne: false
+            referencedRelation: "email_ab_test_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ab_test_variants: {
+        Row: {
+          conversions: number
+          created_at: string
+          discount_code: string
+          discount_percent: number
+          emails_clicked: number
+          emails_opened: number
+          emails_sent: number
+          id: string
+          name: string
+          subject_line: string
+          test_id: string
+          weight: number
+        }
+        Insert: {
+          conversions?: number
+          created_at?: string
+          discount_code: string
+          discount_percent?: number
+          emails_clicked?: number
+          emails_opened?: number
+          emails_sent?: number
+          id?: string
+          name: string
+          subject_line: string
+          test_id: string
+          weight?: number
+        }
+        Update: {
+          conversions?: number
+          created_at?: string
+          discount_code?: string
+          discount_percent?: number
+          emails_clicked?: number
+          emails_opened?: number
+          emails_sent?: number
+          id?: string
+          name?: string
+          subject_line?: string
+          test_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ab_test_variants_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "email_ab_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ab_tests: {
+        Row: {
+          created_at: string
+          email_type: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["ab_test_status"]
+          updated_at: string
+          winning_variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_type?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["ab_test_status"]
+          updated_at?: string
+          winning_variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["ab_test_status"]
+          updated_at?: string
+          winning_variant_id?: string | null
         }
         Relationships: []
       }
@@ -643,6 +737,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      ab_test_status: "active" | "paused" | "completed"
       order_status:
         | "pending"
         | "processing"
@@ -778,6 +873,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ab_test_status: ["active", "paused", "completed"],
       order_status: [
         "pending",
         "processing",
