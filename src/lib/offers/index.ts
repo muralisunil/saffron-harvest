@@ -4,3 +4,4 @@ export * from './fieldResolver';
 export * from './operators';
 export * from './derivedFields';
 export * from './ruleEngine';
+export * from './benefitComputation';
