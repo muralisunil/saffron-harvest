@@ -541,6 +541,136 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_versions: {
+        Row: {
+          benefit_config: Json
+          caps_config: Json | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_until: string | null
+          id: string
+          offer_id: string
+          qualifying_filters: Json | null
+          version_number: number
+        }
+        Insert: {
+          benefit_config?: Json
+          caps_config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          offer_id: string
+          qualifying_filters?: Json | null
+          version_number?: number
+        }
+        Update: {
+          benefit_config?: Json
+          caps_config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          offer_id?: string
+          qualifying_filters?: Json | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_versions_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          campaign_id: string | null
+          channels: string[] | null
+          created_at: string
+          current_version_id: string | null
+          description: string | null
+          funded_by: Database["public"]["Enums"]["funded_by"]
+          id: string
+          marketing_text: string | null
+          max_uses_per_user: number | null
+          max_uses_total: number | null
+          name: string
+          offer_scope: Database["public"]["Enums"]["offer_scope"]
+          offer_type: Database["public"]["Enums"]["offer_type"]
+          order_types: string[] | null
+          priority: number
+          regions: string[] | null
+          stack_group: string | null
+          stacking_policy: Database["public"]["Enums"]["stacking_policy"]
+          status: Database["public"]["Enums"]["offer_status"]
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          channels?: string[] | null
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          funded_by?: Database["public"]["Enums"]["funded_by"]
+          id?: string
+          marketing_text?: string | null
+          max_uses_per_user?: number | null
+          max_uses_total?: number | null
+          name: string
+          offer_scope?: Database["public"]["Enums"]["offer_scope"]
+          offer_type: Database["public"]["Enums"]["offer_type"]
+          order_types?: string[] | null
+          priority?: number
+          regions?: string[] | null
+          stack_group?: string | null
+          stacking_policy?: Database["public"]["Enums"]["stacking_policy"]
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          channels?: string[] | null
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          funded_by?: Database["public"]["Enums"]["funded_by"]
+          id?: string
+          marketing_text?: string | null
+          max_uses_per_user?: number | null
+          max_uses_total?: number | null
+          name?: string
+          offer_scope?: Database["public"]["Enums"]["offer_scope"]
+          offer_type?: Database["public"]["Enums"]["offer_type"]
+          order_types?: string[] | null
+          priority?: number
+          regions?: string[] | null
+          stack_group?: string | null
+          stacking_policy?: Database["public"]["Enums"]["stacking_policy"]
+          status?: Database["public"]["Enums"]["offer_status"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_current_version"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "offer_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -729,6 +859,86 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_groups: {
+        Row: {
+          created_at: string
+          id: string
+          logic: Database["public"]["Enums"]["rule_group_logic"]
+          offer_version_id: string
+          parent_group_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logic?: Database["public"]["Enums"]["rule_group_logic"]
+          offer_version_id: string
+          parent_group_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logic?: Database["public"]["Enums"]["rule_group_logic"]
+          offer_version_id?: string
+          parent_group_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_groups_offer_version_id_fkey"
+            columns: ["offer_version_id"]
+            isOneToOne: false
+            referencedRelation: "offer_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_groups_parent_group_id_fkey"
+            columns: ["parent_group_id"]
+            isOneToOne: false
+            referencedRelation: "rule_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules: {
+        Row: {
+          created_at: string
+          field_path: string
+          id: string
+          operator: Database["public"]["Enums"]["rule_operator"]
+          rule_group_id: string
+          sort_order: number
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          field_path: string
+          id?: string
+          operator: Database["public"]["Enums"]["rule_operator"]
+          rule_group_id: string
+          sort_order?: number
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          field_path?: string
+          id?: string
+          operator?: Database["public"]["Enums"]["rule_operator"]
+          rule_group_id?: string
+          sort_order?: number
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "rule_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -738,6 +948,21 @@ export type Database = {
     }
     Enums: {
       ab_test_status: "active" | "paused" | "completed"
+      funded_by: "platform" | "brand"
+      offer_scope: "item" | "category" | "brand" | "cart" | "user"
+      offer_status: "draft" | "active" | "paused" | "expired" | "archived"
+      offer_type:
+        | "percent_discount"
+        | "flat_discount"
+        | "free_item"
+        | "tiered_discount"
+        | "price_override"
+        | "cashback"
+        | "loyalty_points"
+        | "buy_x_get_y"
+        | "mix_and_match"
+        | "cheapest_item"
+        | "free_gift"
       order_status:
         | "pending"
         | "processing"
@@ -746,6 +971,20 @@ export type Database = {
         | "cancelled"
         | "refunded"
       payment_status: "pending" | "paid" | "failed" | "refunded"
+      rule_group_logic: "all" | "any"
+      rule_operator:
+        | "eq"
+        | "neq"
+        | "gt"
+        | "gte"
+        | "lt"
+        | "lte"
+        | "in"
+        | "not_in"
+        | "exists"
+        | "between"
+        | "matches"
+      stacking_policy: "stackable" | "exclusive" | "stack_group"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -874,6 +1113,22 @@ export const Constants = {
   public: {
     Enums: {
       ab_test_status: ["active", "paused", "completed"],
+      funded_by: ["platform", "brand"],
+      offer_scope: ["item", "category", "brand", "cart", "user"],
+      offer_status: ["draft", "active", "paused", "expired", "archived"],
+      offer_type: [
+        "percent_discount",
+        "flat_discount",
+        "free_item",
+        "tiered_discount",
+        "price_override",
+        "cashback",
+        "loyalty_points",
+        "buy_x_get_y",
+        "mix_and_match",
+        "cheapest_item",
+        "free_gift",
+      ],
       order_status: [
         "pending",
         "processing",
@@ -883,6 +1138,21 @@ export const Constants = {
         "refunded",
       ],
       payment_status: ["pending", "paid", "failed", "refunded"],
+      rule_group_logic: ["all", "any"],
+      rule_operator: [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "not_in",
+        "exists",
+        "between",
+        "matches",
+      ],
+      stacking_policy: ["stackable", "exclusive", "stack_group"],
     },
   },
 } as const
