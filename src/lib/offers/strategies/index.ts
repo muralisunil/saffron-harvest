@@ -4,12 +4,18 @@ import { BaseStrategy } from './baseStrategy';
 import { PercentDiscountStrategy } from './percentDiscountStrategy';
 import { FlatDiscountStrategy } from './flatDiscountStrategy';
 import { PriceOverrideStrategy } from './priceOverrideStrategy';
+import { TieredDiscountStrategy } from './tieredDiscountStrategy';
+import { BuyXGetYStrategy } from './buyXGetYStrategy';
+import { MixAndMatchStrategy } from './mixAndMatchStrategy';
 
 export { BaseStrategy } from './baseStrategy';
 export type { StrategyContext, StrategyResult } from './baseStrategy';
 export { PercentDiscountStrategy } from './percentDiscountStrategy';
 export { FlatDiscountStrategy } from './flatDiscountStrategy';
 export { PriceOverrideStrategy } from './priceOverrideStrategy';
+export { TieredDiscountStrategy } from './tieredDiscountStrategy';
+export { BuyXGetYStrategy } from './buyXGetYStrategy';
+export { MixAndMatchStrategy } from './mixAndMatchStrategy';
 
 // Strategy factory
 export function createStrategy(offer: Offer): BaseStrategy | null {
@@ -22,16 +28,18 @@ export function createStrategy(offer: Offer): BaseStrategy | null {
       return new FlatDiscountStrategy(offer);
     case 'price_override':
       return new PriceOverrideStrategy(offer);
-    // Future strategies will be added here
     case 'tiered_discount':
+      return new TieredDiscountStrategy(offer);
     case 'buy_x_get_y':
+      return new BuyXGetYStrategy(offer);
     case 'mix_and_match':
+      return new MixAndMatchStrategy(offer);
+    // Future strategies
     case 'cheapest_item':
     case 'free_item':
     case 'free_gift':
     case 'cashback':
     case 'loyalty_points':
-      // Not yet implemented - return null
       return null;
     default:
       return null;
@@ -40,5 +48,12 @@ export function createStrategy(offer: Offer): BaseStrategy | null {
 
 // Check if a strategy is implemented
 export function isStrategyImplemented(offerType: OfferType): boolean {
-  return ['percent_discount', 'flat_discount', 'price_override'].includes(offerType);
+  return [
+    'percent_discount', 
+    'flat_discount', 
+    'price_override',
+    'tiered_discount',
+    'buy_x_get_y',
+    'mix_and_match'
+  ].includes(offerType);
 }
