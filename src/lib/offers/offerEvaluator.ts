@@ -24,19 +24,23 @@ export function convertCartToOfferCart(
     quantity: number;
   }>
 ): Cart {
-  const lineItems: CartLineItem[] = items.map((item, index) => ({
-    id: `line_${index}`,
-    sku: item.variant.id,
-    product_id: item.product.id,
-    name: item.product.name,
-    unit_price: item.variant.price,
-    quantity: item.quantity,
-    extended_price: item.variant.price * item.quantity,
-    category: item.product.category,
-    brand: item.product.brand,
-    tags: [],
-    attributes: { size: item.variant.size }
-  }));
+  const lineItems: CartLineItem[] = items.map((item, index) => {
+    const lineId = `line_${index}`;
+    return {
+      id: lineId,
+      line_id: lineId,
+      sku: item.variant.id,
+      product_id: item.product.id,
+      name: item.product.name,
+      unit_price: item.variant.price,
+      quantity: item.quantity,
+      extended_price: item.variant.price * item.quantity,
+      category: item.product.category,
+      brand: item.product.brand,
+      tags: [],
+      attributes: { size: item.variant.size }
+    };
+  });
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.extended_price, 0);
 

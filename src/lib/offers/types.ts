@@ -30,6 +30,7 @@ export type FundedBy = 'platform' | 'brand';
 // Cart model for evaluation
 export interface CartLineItem {
   id: string;
+  line_id: string; // Alias for id, used in adjustments
   sku: string;
   product_id: string;
   name: string;
@@ -133,9 +134,24 @@ export interface BenefitConfig {
   discount_percent?: number;
   discount_amount?: number;
   free_sku?: string;
+  // Buy X Get Y
   buy_qty?: number;
   get_qty?: number;
-  tiers?: Array<{ min_qty: number; max_qty?: number; discount: number }>;
+  buy_quantity?: number; // Alias
+  get_quantity?: number; // Alias
+  get_discount_percent?: number;
+  max_sets?: number;
+  selection_strategy?: 'lowest_priced' | 'highest_priced' | 'fifo';
+  // Tiered discount
+  tiers?: Array<{ min_qty: number; max_qty?: number; discount: number; discount_percent?: number; discount_amount?: number; price_per_unit?: number }>;
+  apply_per_item?: boolean;
+  // Mix and match
+  groups?: Array<{ group_id: string; filters: QualifyingFilters; required_quantity: number }>;
+  combo_price?: number;
+  combo_discount_percent?: number;
+  combo_discount_amount?: number;
+  max_combos?: number;
+  // General
   apply_to?: 'lowest_priced' | 'highest_priced' | 'nth_item';
   group_size?: number;
   threshold_amount?: number;
