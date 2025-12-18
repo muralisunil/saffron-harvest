@@ -15,6 +15,7 @@ import {
 import { evaluateOfferEligibility } from './ruleEngine';
 import { computeDerivedFields, filterQualifyingItems } from './derivedFields';
 import { createStrategy, StrategyContext } from './strategies';
+import { resolveConflicts, getRejectReasonMessage, ConflictResolverOptions } from './conflictResolver';
 
 // Convert cart items from app format to offer system format
 export function convertCartToOfferCart(
@@ -150,15 +151,25 @@ function transformDbOffer(dbOffer: any): Offer {
   };
 }
 
+export interface EvaluationOptions {
+  // Conflict resolution options
+  max_offers?: number;
+  max_total_discount?: number;
+  max_discount_percent?: number;
+  // Skip conflict resolution (for testing individual offers)
+  skip_conflict_resolution?: boolean;
+}
+
 // Main evaluation function
 export async function evaluateOffersForCart(
   cart: Cart,
   user: User | null = null,
-  context: EvaluationContext = { current_time: new Date(), channel: 'web' }
+  context: EvaluationContext = { current_time: new Date(), channel: 'web' },
+  options: EvaluationOptions = {}
 ): Promise<EvaluationResult> {
   const offers = await fetchActiveOffers();
   
-  return evaluateOffersSync(offers, cart, user, context);
+  return evaluateOffersSync(offers, cart, user, context, options);
 }
 
 // Synchronous evaluation (for when offers are already loaded)
@@ -166,10 +177,11 @@ export function evaluateOffersSync(
   offers: Offer[],
   cart: Cart,
   user: User | null = null,
-  context: EvaluationContext = { current_time: new Date(), channel: 'web' }
+  context: EvaluationContext = { current_time: new Date(), channel: 'web' },
+  options: EvaluationOptions = {}
 ): EvaluationResult {
-  const applicableOffers: Offer[] = [];
-  const plans: ApplicationPlan[] = [];
+  const eligibleOffers: Offer[] = [];
+  const candidatePlans: ApplicationPlan[] = [];
   const messages: string[] = [];
   const potentialOffers: Array<{ offer: Offer; missing_conditions: string[] }> = [];
 
@@ -219,10 +231,10 @@ export function evaluateOffersSync(
 
     const result = strategy.compute(strategyContext);
 
-    if (result.totalDiscount > 0) {
-      applicableOffers.push(offer);
+    if (result.totalDiscount > 0 || result.lineAdjustments.length > 0) {
+      eligibleOffers.push(offer);
       
-      plans.push({
+      candidatePlans.push({
         offer_id: offer.id,
         offer_name: offer.name,
         scope: offer.offer_scope,
@@ -236,11 +248,49 @@ export function evaluateOffersSync(
     }
   }
 
+  // Apply conflict resolution unless skipped
+  if (options.skip_conflict_resolution) {
+    return {
+      applicable_offers: eligibleOffers,
+      plans: candidatePlans,
+      messages,
+      potential_offers: potentialOffers,
+      total_discount: calculateTotalDiscount(candidatePlans)
+    };
+  }
+
+  // Resolve conflicts based on stacking policies and priorities
+  const conflictOptions: ConflictResolverOptions = {
+    max_offers: options.max_offers,
+    max_total_discount: options.max_total_discount,
+    max_discount_percent: options.max_discount_percent,
+    cart_subtotal: cart.subtotal
+  };
+
+  const resolutionResult = resolveConflicts(candidatePlans, eligibleOffers, conflictOptions);
+
+  // Build rejection info for result
+  const rejectedOffers = resolutionResult.rejected_plans.map(({ plan, offer }) => {
+    const log = resolutionResult.rejection_logs.find(l => l.offer_id === offer.id);
+    return {
+      offer,
+      plan,
+      reason: log ? getRejectReasonMessage(log) : 'Unknown conflict'
+    };
+  });
+
+  // Get accepted offers
+  const acceptedOfferIds = new Set(resolutionResult.accepted_plans.map(p => p.offer_id));
+  const acceptedOffers = eligibleOffers.filter(o => acceptedOfferIds.has(o.id));
+
   return {
-    applicable_offers: applicableOffers,
-    plans,
+    applicable_offers: acceptedOffers,
+    plans: resolutionResult.accepted_plans,
     messages,
-    potential_offers: potentialOffers
+    potential_offers: potentialOffers,
+    rejected_offers: rejectedOffers,
+    rejection_logs: resolutionResult.rejection_logs,
+    total_discount: resolutionResult.total_discount
   };
 }
 

@@ -7,3 +7,4 @@ export * from './ruleEngine';
 export * from './benefitComputation';
 export * from './strategies';
 export * from './offerEvaluator';
+export * from './conflictResolver';
