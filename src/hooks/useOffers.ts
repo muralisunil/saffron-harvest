@@ -6,7 +6,8 @@ import {
   evaluateOffersForCart, 
   evaluateOffersSync,
   fetchActiveOffers,
-  calculateTotalDiscount 
+  calculateTotalDiscount,
+  EvaluationOptions
 } from '@/lib/offers/offerEvaluator';
 import { 
   Offer, 
@@ -16,11 +17,26 @@ import {
   EvaluationResult,
   ApplicationPlan 
 } from '@/lib/offers/types';
+import { RejectionLog, RejectionReason } from '@/lib/offers/conflictResolver';
 
+// Type for rejection logs from evaluation result (uses string reason for flexibility)
+type EvaluationRejectionLog = {
+  offer_id: string;
+  offer_name: string;
+  reason: string;
+  conflicting_offer_id?: string;
+  conflicting_offer_name?: string;
+  details: string;
+  timestamp: Date;
+};
 interface UseOffersOptions {
   user?: User | null;
   autoEvaluate?: boolean;
   refreshInterval?: number; // milliseconds
+  // Conflict resolution options
+  maxOffers?: number;
+  maxTotalDiscount?: number;
+  maxDiscountPercent?: number;
 }
 
 interface UseOffersReturn {
@@ -35,6 +51,8 @@ interface UseOffersReturn {
   discountedSubtotal: number;
   applicablePlans: ApplicationPlan[];
   potentialSavings: Array<{ offer: Offer; missing: string[] }>;
+  rejectedOffers: Array<{ offer: Offer; reason: string }>;
+  rejectionLogs: EvaluationRejectionLog[];
   
   // Actions
   refreshOffers: () => Promise<void>;
@@ -42,7 +60,14 @@ interface UseOffersReturn {
 }
 
 export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
-  const { user = null, autoEvaluate = true, refreshInterval } = options;
+  const { 
+    user = null, 
+    autoEvaluate = true, 
+    refreshInterval,
+    maxOffers,
+    maxTotalDiscount,
+    maxDiscountPercent
+  } = options;
   const { items, getCartTotal } = useCart();
   
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -61,6 +86,13 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
     current_time: new Date(),
     channel: 'web'
   }), []);
+
+  // Create evaluation options with conflict resolution settings
+  const evalOptions: EvaluationOptions = useMemo(() => ({
+    max_offers: maxOffers,
+    max_total_discount: maxTotalDiscount,
+    max_discount_percent: maxDiscountPercent
+  }), [maxOffers, maxTotalDiscount, maxDiscountPercent]);
 
   // Fetch active offers
   const refreshOffers = useCallback(async () => {
@@ -83,7 +115,8 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
         applicable_offers: [],
         plans: [],
         messages: [],
-        potential_offers: []
+        potential_offers: [],
+        total_discount: 0
       };
       setEvaluationResult(emptyResult);
       return emptyResult;
@@ -96,9 +129,9 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
       // If we already have offers loaded, use sync evaluation
       let result: EvaluationResult;
       if (offers.length > 0) {
-        result = evaluateOffersSync(offers, offerCart, user, context);
+        result = evaluateOffersSync(offers, offerCart, user, context, evalOptions);
       } else {
-        result = await evaluateOffersForCart(offerCart, user, context);
+        result = await evaluateOffersForCart(offerCart, user, context, evalOptions);
       }
       
       setEvaluationResult(result);
@@ -110,7 +143,7 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [offerCart, offers, user, context]);
+  }, [offerCart, offers, user, context, evalOptions]);
 
   // Initial load of offers
   useEffect(() => {
@@ -135,7 +168,7 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
   // Computed values
   const totalDiscount = useMemo(() => {
     if (!evaluationResult) return 0;
-    return calculateTotalDiscount(evaluationResult.plans);
+    return evaluationResult.total_discount;
   }, [evaluationResult]);
 
   const discountedSubtotal = useMemo(() => {
@@ -154,6 +187,17 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
     }));
   }, [evaluationResult]);
 
+  const rejectedOffers = useMemo(() => {
+    return (evaluationResult?.rejected_offers || []).map(ro => ({
+      offer: ro.offer,
+      reason: ro.reason
+    }));
+  }, [evaluationResult]);
+
+  const rejectionLogs = useMemo(() => {
+    return evaluationResult?.rejection_logs || [];
+  }, [evaluationResult]);
+
   return {
     offers,
     evaluationResult,
@@ -163,6 +207,8 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
     discountedSubtotal,
     applicablePlans,
     potentialSavings,
+    rejectedOffers,
+    rejectionLogs,
     refreshOffers,
     evaluateCart
   };

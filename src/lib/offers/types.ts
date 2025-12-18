@@ -223,6 +223,18 @@ export interface EvaluationResult {
   plans: ApplicationPlan[];
   messages: string[];
   potential_offers: Array<{ offer: Offer; missing_conditions: string[] }>;
+  // Conflict resolution results
+  rejected_offers?: Array<{ offer: Offer; plan: ApplicationPlan; reason: string }>;
+  rejection_logs?: Array<{
+    offer_id: string;
+    offer_name: string;
+    reason: string;
+    conflicting_offer_id?: string;
+    conflicting_offer_name?: string;
+    details: string;
+    timestamp: Date;
+  }>;
+  total_discount: number;
 }
 
 // Derived fields for rule evaluation
