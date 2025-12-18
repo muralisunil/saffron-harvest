@@ -7,6 +7,10 @@ import { PriceOverrideStrategy } from './priceOverrideStrategy';
 import { TieredDiscountStrategy } from './tieredDiscountStrategy';
 import { BuyXGetYStrategy } from './buyXGetYStrategy';
 import { MixAndMatchStrategy } from './mixAndMatchStrategy';
+import { CheapestItemStrategy } from './cheapestItemStrategy';
+import { FreeGiftStrategy } from './freeGiftStrategy';
+import { CashbackStrategy } from './cashbackStrategy';
+import { LoyaltyPointsStrategy } from './loyaltyPointsStrategy';
 
 export { BaseStrategy } from './baseStrategy';
 export type { StrategyContext, StrategyResult } from './baseStrategy';
@@ -16,6 +20,10 @@ export { PriceOverrideStrategy } from './priceOverrideStrategy';
 export { TieredDiscountStrategy } from './tieredDiscountStrategy';
 export { BuyXGetYStrategy } from './buyXGetYStrategy';
 export { MixAndMatchStrategy } from './mixAndMatchStrategy';
+export { CheapestItemStrategy } from './cheapestItemStrategy';
+export { FreeGiftStrategy } from './freeGiftStrategy';
+export { CashbackStrategy } from './cashbackStrategy';
+export { LoyaltyPointsStrategy } from './loyaltyPointsStrategy';
 
 // Strategy factory
 export function createStrategy(offer: Offer): BaseStrategy | null {
@@ -34,12 +42,16 @@ export function createStrategy(offer: Offer): BaseStrategy | null {
       return new BuyXGetYStrategy(offer);
     case 'mix_and_match':
       return new MixAndMatchStrategy(offer);
-    // Future strategies
     case 'cheapest_item':
-    case 'free_item':
+      return new CheapestItemStrategy(offer);
     case 'free_gift':
+      return new FreeGiftStrategy(offer);
     case 'cashback':
+      return new CashbackStrategy(offer);
     case 'loyalty_points':
+      return new LoyaltyPointsStrategy(offer);
+    // Future strategies
+    case 'free_item':
       return null;
     default:
       return null;
@@ -54,6 +66,10 @@ export function isStrategyImplemented(offerType: OfferType): boolean {
     'price_override',
     'tiered_discount',
     'buy_x_get_y',
-    'mix_and_match'
+    'mix_and_match',
+    'cheapest_item',
+    'free_gift',
+    'cashback',
+    'loyalty_points'
   ].includes(offerType);
 }

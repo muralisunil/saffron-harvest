@@ -33,10 +33,12 @@ export interface CartLineItem {
   line_id: string; // Alias for id, used in adjustments
   sku: string;
   product_id: string;
+  variant_id?: string;
   name: string;
   unit_price: number;
   quantity: number;
   extended_price: number;
+  line_total: number; // Alias for extended_price
   category?: string;
   brand?: string;
   tags?: string[];
@@ -48,6 +50,7 @@ export interface CartLineItem {
 export interface Cart {
   id: string;
   items: CartLineItem[];
+  line_items: CartLineItem[]; // Alias for items
   subtotal: number;
   delivery_fee: number;
   service_fee: number;
@@ -151,6 +154,25 @@ export interface BenefitConfig {
   combo_discount_percent?: number;
   combo_discount_amount?: number;
   max_combos?: number;
+  // Cheapest item
+  min_qualifying_items?: number;
+  max_items?: number;
+  // Free gift
+  gift_items?: Array<{ product_id: string; variant_id?: string; quantity: number; max_per_order?: number }>;
+  min_qualifying_qty?: number;
+  // Cashback
+  cashback_percent?: number;
+  cashback_amount?: number;
+  max_cashback?: number;
+  credit_timing?: 'immediate' | 'after_delivery' | 'after_return_window';
+  // Loyalty points
+  points_per_dollar?: number;
+  bonus_points?: number;
+  points_multiplier?: number;
+  max_points?: number;
+  // Shared
+  min_cart_value?: number;
+  apply_to_qualifying_only?: boolean;
   // General
   apply_to?: 'lowest_priced' | 'highest_priced' | 'nth_item';
   group_size?: number;
@@ -181,6 +203,7 @@ export interface LineItemAdjustment {
   offer_id: string;
   amount: number;
   display_text: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ApplicationPlan {

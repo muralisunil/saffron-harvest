@@ -26,15 +26,18 @@ export function convertCartToOfferCart(
 ): Cart {
   const lineItems: CartLineItem[] = items.map((item, index) => {
     const lineId = `line_${index}`;
+    const extendedPrice = item.variant.price * item.quantity;
     return {
       id: lineId,
       line_id: lineId,
       sku: item.variant.id,
       product_id: item.product.id,
+      variant_id: item.variant.id,
       name: item.product.name,
       unit_price: item.variant.price,
       quantity: item.quantity,
-      extended_price: item.variant.price * item.quantity,
+      extended_price: extendedPrice,
+      line_total: extendedPrice,
       category: item.product.category,
       brand: item.product.brand,
       tags: [],
@@ -47,6 +50,7 @@ export function convertCartToOfferCart(
   return {
     id: `cart_${Date.now()}`,
     items: lineItems,
+    line_items: lineItems,
     subtotal,
     delivery_fee: 0,
     service_fee: 0,
