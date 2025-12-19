@@ -541,6 +541,227 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_experiment_assignments: {
+        Row: {
+          assigned_at: string
+          experiment_id: string
+          id: string
+          session_id: string | null
+          user_id: string | null
+          variant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          experiment_id: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          variant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          experiment_id?: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_experiment_assignments_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_experiment_assignments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiment_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_experiment_conversions: {
+        Row: {
+          conversion_type: string
+          conversion_value: number | null
+          converted_at: string
+          experiment_id: string
+          id: string
+          order_id: string | null
+          properties: Json | null
+          session_id: string | null
+          user_id: string | null
+          variant_id: string
+        }
+        Insert: {
+          conversion_type: string
+          conversion_value?: number | null
+          converted_at?: string
+          experiment_id: string
+          id?: string
+          order_id?: string | null
+          properties?: Json | null
+          session_id?: string | null
+          user_id?: string | null
+          variant_id: string
+        }
+        Update: {
+          conversion_type?: string
+          conversion_value?: number | null
+          converted_at?: string
+          experiment_id?: string
+          id?: string
+          order_id?: string | null
+          properties?: Json | null
+          session_id?: string | null
+          user_id?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_experiment_conversions_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_experiment_conversions_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiment_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_experiment_exposures: {
+        Row: {
+          context: Json | null
+          experiment_id: string
+          exposed_at: string
+          id: string
+          offer_id: string | null
+          session_id: string | null
+          user_id: string | null
+          variant_id: string
+        }
+        Insert: {
+          context?: Json | null
+          experiment_id: string
+          exposed_at?: string
+          id?: string
+          offer_id?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          variant_id: string
+        }
+        Update: {
+          context?: Json | null
+          experiment_id?: string
+          exposed_at?: string
+          id?: string
+          offer_id?: string | null
+          session_id?: string | null
+          user_id?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_experiment_exposures_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_experiment_exposures_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiment_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_experiment_variants: {
+        Row: {
+          created_at: string
+          description: string | null
+          experiment_id: string
+          id: string
+          is_control: boolean
+          name: string
+          offer_ids: string[]
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          experiment_id: string
+          id?: string
+          is_control?: boolean
+          name: string
+          offer_ids?: string[]
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          experiment_id?: string
+          id?: string
+          is_control?: boolean
+          name?: string
+          offer_ids?: string[]
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_experiment_variants_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "offer_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_experiments: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["offer_experiment_status"]
+          traffic_percent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["offer_experiment_status"]
+          traffic_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["offer_experiment_status"]
+          traffic_percent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       offer_versions: {
         Row: {
           benefit_config: Json
@@ -949,6 +1170,12 @@ export type Database = {
     Enums: {
       ab_test_status: "active" | "paused" | "completed"
       funded_by: "platform" | "brand"
+      offer_experiment_status:
+        | "draft"
+        | "running"
+        | "paused"
+        | "completed"
+        | "archived"
       offer_scope: "item" | "category" | "brand" | "cart" | "user"
       offer_status: "draft" | "active" | "paused" | "expired" | "archived"
       offer_type:
@@ -1114,6 +1341,13 @@ export const Constants = {
     Enums: {
       ab_test_status: ["active", "paused", "completed"],
       funded_by: ["platform", "brand"],
+      offer_experiment_status: [
+        "draft",
+        "running",
+        "paused",
+        "completed",
+        "archived",
+      ],
       offer_scope: ["item", "category", "brand", "cart", "user"],
       offer_status: ["draft", "active", "paused", "expired", "archived"],
       offer_type: [
