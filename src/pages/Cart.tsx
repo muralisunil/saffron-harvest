@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/CartContext";
+import { useCartDiscounts } from "@/hooks/useOffers";
+import CartDiscountDisplay from "@/components/cart/CartDiscountDisplay";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getCartTotal } = useCart();
+  const { totalDiscount, discountedSubtotal, applicablePlans, isLoading, rejectionLogs } = useCartDiscounts();
 
   if (items.length === 0) {
     return (
@@ -35,7 +38,8 @@ const Cart = () => {
 
   const subtotal = getCartTotal();
   const shipping = subtotal > 500 ? 0 : 50;
-  const total = subtotal + shipping;
+  const finalSubtotal = totalDiscount > 0 ? discountedSubtotal : subtotal;
+  const total = finalSubtotal + shipping;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -125,7 +129,15 @@ const Cart = () => {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
+            {/* Discount Display */}
+            <CartDiscountDisplay
+              applicablePlans={applicablePlans}
+              totalDiscount={totalDiscount}
+              rejectionLogs={rejectionLogs}
+              isLoading={isLoading}
+            />
+
             <Card className="sticky top-20">
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-xl font-display font-bold">Order Summary</h2>
@@ -135,6 +147,12 @@ const Cart = () => {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="font-medium">₹{subtotal}</span>
                   </div>
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount</span>
+                      <span className="font-medium">-₹{totalDiscount.toFixed(0)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
                     <span className="font-medium">
