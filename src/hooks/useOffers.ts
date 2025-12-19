@@ -216,12 +216,13 @@ export function useOffers(options: UseOffersOptions = {}): UseOffersReturn {
 
 // Simplified hook for just getting applicable discounts
 export function useCartDiscounts() {
-  const { totalDiscount, discountedSubtotal, applicablePlans, isLoading } = useOffers();
+  const { totalDiscount, discountedSubtotal, applicablePlans, isLoading, rejectionLogs } = useOffers();
   
   return {
     totalDiscount,
     discountedSubtotal,
-    discounts: applicablePlans,
+    applicablePlans,
+    rejectionLogs,
     isLoading
   };
 }
