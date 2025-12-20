@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import RecoveryEmailSettings from "@/components/admin/RecoveryEmailSettings";
-
+import { OfferExperimentManager } from "@/components/admin/OfferExperimentManager";
 const Admin = () => {
   const [file, setFile] = useState<File | null>(null);
 
@@ -235,6 +235,11 @@ const Admin = () => {
         {/* Recovery Email Settings */}
         <div className="mt-6">
           <RecoveryEmailSettings />
+        </div>
+
+        {/* Offer Experiments */}
+        <div className="mt-6">
+          <OfferExperimentManager />
         </div>
       </main>
 
