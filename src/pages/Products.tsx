@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -12,11 +13,39 @@ import { Filter, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const Products = () => {
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedDietaryTags, setSelectedDietaryTags] = useState<string[]>([]);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
+
+  // Apply filters from URL params on mount
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const brandParam = searchParams.get('brand');
+    
+    if (categoryParam) {
+      // Find matching category (case-insensitive)
+      const matchingCategory = categories.find(
+        c => c.toLowerCase() === categoryParam.toLowerCase()
+      );
+      if (matchingCategory) {
+        setSelectedCategory(matchingCategory);
+      }
+    }
+    
+    if (brandParam) {
+      // Find matching brand (case-insensitive)
+      const allBrands = Array.from(new Set(products.map((p) => p.brand)));
+      const matchingBrand = allBrands.find(
+        b => b.toLowerCase() === brandParam.toLowerCase()
+      );
+      if (matchingBrand) {
+        setSelectedBrands([matchingBrand]);
+      }
+    }
+  }, [searchParams]);
 
   const allBrands = Array.from(new Set(products.map((p) => p.brand))).sort();
   const allDietaryTags = Array.from(new Set(products.flatMap((p) => p.dietaryTags || []))).sort();

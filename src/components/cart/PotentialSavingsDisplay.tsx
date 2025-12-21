@@ -1,7 +1,8 @@
-import { TrendingUp, ArrowRight, ShoppingCart, Package, Tag } from "lucide-react";
+import { TrendingUp, ArrowRight, ShoppingCart, Package, Tag, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Link } from "react-router-dom";
 import type { Offer } from "@/lib/offers/types";
 
 interface PotentialSaving {
@@ -14,14 +15,22 @@ interface PotentialSavingsDisplayProps {
   isLoading?: boolean;
 }
 
-// Parse missing conditions to extract actionable requirements
-const parseRequirement = (condition: string): { type: string; action: string; progress?: number } => {
+interface ParsedRequirement {
+  type: 'cart_value' | 'quantity' | 'category' | 'brand' | 'other';
+  action: string;
+  linkTo?: string;
+  linkParams?: Record<string, string>;
+}
+
+// Parse missing conditions to extract actionable requirements with navigation
+const parseRequirement = (condition: string): ParsedRequirement => {
   // Parse minimum cart value requirements
   const cartValueMatch = condition.match(/cart.*?(\d+)/i) || condition.match(/spend.*?(\d+)/i);
   if (cartValueMatch) {
     return {
       type: 'cart_value',
-      action: `Add ₹${cartValueMatch[1]} more to your cart`
+      action: `Add ₹${cartValueMatch[1]} more to your cart`,
+      linkTo: '/products'
     };
   }
 
@@ -30,32 +39,40 @@ const parseRequirement = (condition: string): { type: string; action: string; pr
   if (quantityMatch) {
     return {
       type: 'quantity',
-      action: `Add ${quantityMatch[1]} more item${parseInt(quantityMatch[1]) > 1 ? 's' : ''}`
+      action: `Add ${quantityMatch[1]} more item${parseInt(quantityMatch[1]) > 1 ? 's' : ''}`,
+      linkTo: '/products'
     };
   }
 
   // Parse category requirements
   const categoryMatch = condition.match(/category[:\s]+(\w+)/i);
   if (categoryMatch) {
+    const category = categoryMatch[1];
     return {
       type: 'category',
-      action: `Add items from ${categoryMatch[1]} category`
+      action: `Add items from ${category} category`,
+      linkTo: '/products',
+      linkParams: { category }
     };
   }
 
   // Parse brand requirements
   const brandMatch = condition.match(/brand[:\s]+(\w+)/i);
   if (brandMatch) {
+    const brand = brandMatch[1];
     return {
       type: 'brand',
-      action: `Add ${brandMatch[1]} products`
+      action: `Add ${brand} products`,
+      linkTo: '/products',
+      linkParams: { brand }
     };
   }
 
   // Default fallback with improved formatting
   return {
     type: 'other',
-    action: condition.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    action: condition.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    linkTo: '/products'
   };
 };
 
@@ -68,6 +85,22 @@ const getRequirementIcon = (type: string) => {
     default:
       return <Tag className="h-3.5 w-3.5" />;
   }
+};
+
+// Build URL with query params for filtering
+const buildProductsUrl = (req: ParsedRequirement): string => {
+  if (!req.linkTo) return '/products';
+  
+  const params = new URLSearchParams();
+  if (req.linkParams?.category) {
+    params.set('category', req.linkParams.category);
+  }
+  if (req.linkParams?.brand) {
+    params.set('brand', req.linkParams.brand);
+  }
+  
+  const queryString = params.toString();
+  return queryString ? `${req.linkTo}?${queryString}` : req.linkTo;
 };
 
 const PotentialSavingsDisplay = ({
@@ -126,22 +159,26 @@ const PotentialSavingsDisplay = ({
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     What you need:
                   </p>
-                  {requirements.slice(0, 2).map((req, reqIndex) => (
-                    <div
+                {requirements.slice(0, 2).map((req, reqIndex) => (
+                    <Link
                       key={reqIndex}
-                      className="flex items-center gap-2 text-sm"
+                      to={buildProductsUrl(req)}
+                      className="flex items-center gap-2 text-sm group hover:bg-amber-100/50 dark:hover:bg-amber-900/20 p-1.5 -m-1.5 rounded-md transition-colors cursor-pointer"
                     >
-                      <div className="p-1 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                      <div className="p-1 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 group-hover:bg-amber-200 dark:group-hover:bg-amber-800/40 transition-colors">
                         {getRequirementIcon(req.type)}
                       </div>
-                      <span className="text-foreground/80">{req.action}</span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground ml-auto" />
-                    </div>
+                      <span className="text-foreground/80 group-hover:text-foreground transition-colors">{req.action}</span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
                   ))}
                   {requirements.length > 2 && (
-                    <p className="text-xs text-muted-foreground pl-7">
-                      +{requirements.length - 2} more requirement{requirements.length - 2 > 1 ? 's' : ''}
-                    </p>
+                    <Link 
+                      to="/products"
+                      className="text-xs text-muted-foreground pl-7 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                    >
+                      +{requirements.length - 2} more requirement{requirements.length - 2 > 1 ? 's' : ''} →
+                    </Link>
                   )}
                 </div>
 
