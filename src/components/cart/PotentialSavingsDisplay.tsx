@@ -1,9 +1,10 @@
-import { TrendingUp, ArrowRight, ShoppingCart, Package, Tag, ExternalLink } from "lucide-react";
+import { TrendingUp, ArrowRight, ShoppingCart, Package, Tag, ExternalLink, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
-import type { Offer } from "@/lib/offers/types";
+import { useCart } from "@/context/CartContext";
+import type { Offer, BenefitConfig } from "@/lib/offers/types";
 
 interface PotentialSaving {
   offer: Offer;
@@ -21,6 +22,112 @@ interface ParsedRequirement {
   linkTo?: string;
   linkParams?: Record<string, string>;
 }
+
+// Estimate potential savings based on offer type and current cart
+const estimateSavings = (offer: Offer, cartTotal: number, itemCount: number): { amount: number; display: string } | null => {
+  const version = offer.current_version;
+  if (!version) return null;
+  
+  const benefit = version.benefit_config as BenefitConfig;
+  
+  switch (offer.offer_type) {
+    case 'percent_discount': {
+      const percent = benefit.discount_percent ?? 0;
+      if (percent <= 0) return null;
+      // Estimate based on current cart value or minimum qualifying amount
+      const baseAmount = Math.max(cartTotal, benefit.min_cart_value ?? cartTotal);
+      const estimatedSaving = baseAmount * (percent / 100);
+      return {
+        amount: estimatedSaving,
+        display: `Save up to ${percent}%`
+      };
+    }
+    
+    case 'flat_discount': {
+      const flatAmount = benefit.discount_amount ?? 0;
+      if (flatAmount <= 0) return null;
+      return {
+        amount: flatAmount,
+        display: `Save ₹${flatAmount}`
+      };
+    }
+    
+    case 'buy_x_get_y': {
+      const buyQty = benefit.buy_qty ?? benefit.buy_quantity ?? 1;
+      const getQty = benefit.get_qty ?? benefit.get_quantity ?? 1;
+      const getDiscount = benefit.get_discount_percent ?? 100;
+      // Estimate based on average item price in cart
+      const avgItemPrice = itemCount > 0 ? cartTotal / itemCount : 100;
+      const estimatedSaving = avgItemPrice * getQty * (getDiscount / 100);
+      return {
+        amount: estimatedSaving,
+        display: getDiscount === 100 
+          ? `Get ${getQty} free` 
+          : `Get ${getQty} at ${getDiscount}% off`
+      };
+    }
+    
+    case 'tiered_discount': {
+      const tiers = benefit.tiers ?? [];
+      if (tiers.length === 0) return null;
+      // Find the best tier
+      const bestTier = tiers.reduce((best, tier) => {
+        const discount = tier.discount ?? tier.discount_percent ?? 0;
+        return discount > (best?.discount ?? 0) ? tier : best;
+      }, tiers[0]);
+      const discount = bestTier.discount ?? bestTier.discount_percent ?? 0;
+      const estimatedSaving = cartTotal * (discount / 100);
+      return {
+        amount: estimatedSaving,
+        display: `Up to ${discount}% off`
+      };
+    }
+    
+    case 'cheapest_item': {
+      const discountPercent = benefit.discount_percent ?? 100;
+      const avgItemPrice = itemCount > 0 ? cartTotal / itemCount : 100;
+      // Cheapest item is typically lower than average
+      const estimatedCheapest = avgItemPrice * 0.6;
+      const estimatedSaving = estimatedCheapest * (discountPercent / 100);
+      return {
+        amount: estimatedSaving,
+        display: discountPercent === 100 
+          ? 'Cheapest item free' 
+          : `${discountPercent}% off cheapest`
+      };
+    }
+    
+    case 'free_gift': {
+      return {
+        amount: 0,
+        display: 'Free gift included'
+      };
+    }
+    
+    case 'cashback': {
+      const cashbackPercent = benefit.cashback_percent ?? benefit.discount_percent ?? 0;
+      const maxCashback = benefit.max_cashback;
+      const estimated = cartTotal * (cashbackPercent / 100);
+      const finalAmount = maxCashback ? Math.min(estimated, maxCashback) : estimated;
+      return {
+        amount: finalAmount,
+        display: `${cashbackPercent}% cashback`
+      };
+    }
+    
+    case 'loyalty_points': {
+      const pointsMultiplier = benefit.points_multiplier ?? 1;
+      const bonusPoints = benefit.bonus_points ?? 0;
+      return {
+        amount: bonusPoints,
+        display: `${pointsMultiplier}x points + ${bonusPoints} bonus`
+      };
+    }
+    
+    default:
+      return null;
+  }
+};
 
 // Parse missing conditions to extract actionable requirements with navigation
 const parseRequirement = (condition: string): ParsedRequirement => {
@@ -107,6 +214,10 @@ const PotentialSavingsDisplay = ({
   potentialSavings,
   isLoading = false,
 }: PotentialSavingsDisplayProps) => {
+  const { items, getCartTotal } = useCart();
+  const cartTotal = getCartTotal();
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   if (isLoading || potentialSavings.length === 0) {
     return null;
   }
@@ -132,6 +243,9 @@ const PotentialSavingsDisplay = ({
             const completedReqs = 0; // Could be calculated based on current cart state
             const totalReqs = requirements.length;
             const progressPercent = totalReqs > 0 ? ((totalReqs - saving.missing.length) / totalReqs) * 100 : 0;
+            
+            // Calculate estimated savings
+            const estimatedSaving = estimateSavings(saving.offer, cartTotal, itemCount);
 
             return (
               <div
@@ -139,7 +253,7 @@ const PotentialSavingsDisplay = ({
                 className="p-3 rounded-lg bg-background/60 border border-amber-200/50 dark:border-amber-800/30 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.5 flex-1">
                     <h4 className="font-medium text-sm text-foreground">
                       {saving.offer.name}
                     </h4>
@@ -149,10 +263,44 @@ const PotentialSavingsDisplay = ({
                       </p>
                     )}
                   </div>
-                  <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 shrink-0">
-                    {saving.offer.offer_type.replace(/_/g, ' ')}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20">
+                      {saving.offer.offer_type.replace(/_/g, ' ')}
+                    </Badge>
+                    {/* Estimated savings badge */}
+                    {estimatedSaving && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <Sparkles className="h-3 w-3 text-green-600 dark:text-green-400" />
+                        {estimatedSaving.amount > 0 ? (
+                          <span className="font-semibold text-green-600 dark:text-green-400">
+                            ~₹{Math.round(estimatedSaving.amount)} savings
+                          </span>
+                        ) : (
+                          <span className="font-medium text-green-600 dark:text-green-400">
+                            {estimatedSaving.display}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Estimated savings highlight for large savings */}
+                {estimatedSaving && estimatedSaving.amount >= 50 && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/30">
+                    <div className="p-1 rounded-full bg-green-100 dark:bg-green-900/50">
+                      <Sparkles className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-green-700 dark:text-green-300">
+                        {estimatedSaving.display}
+                      </p>
+                      <p className="text-xs text-green-600/80 dark:text-green-400/80">
+                        Estimated savings: ₹{Math.round(estimatedSaving.amount)}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Requirements list */}
                 <div className="space-y-1.5">
