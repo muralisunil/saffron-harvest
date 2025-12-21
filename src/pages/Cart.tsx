@@ -8,10 +8,11 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/CartContext";
 import { useCartDiscounts } from "@/hooks/useOffers";
 import CartDiscountDisplay from "@/components/cart/CartDiscountDisplay";
+import PotentialSavingsDisplay from "@/components/cart/PotentialSavingsDisplay";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getCartTotal } = useCart();
-  const { totalDiscount, discountedSubtotal, applicablePlans, isLoading, rejectionLogs } = useCartDiscounts();
+  const { totalDiscount, discountedSubtotal, applicablePlans, isLoading, rejectionLogs, potentialSavings } = useCartDiscounts();
 
   if (items.length === 0) {
     return (
@@ -135,6 +136,12 @@ const Cart = () => {
               applicablePlans={applicablePlans}
               totalDiscount={totalDiscount}
               rejectionLogs={rejectionLogs}
+              isLoading={isLoading}
+            />
+
+            {/* Potential Savings */}
+            <PotentialSavingsDisplay
+              potentialSavings={potentialSavings}
               isLoading={isLoading}
             />
 
