@@ -358,6 +358,33 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       email_ab_test_variants: {
         Row: {
           conversions: number
@@ -1038,6 +1065,104 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      product_variants: {
+        Row: {
+          created_at: string | null
+          discount_percent: number | null
+          id: string
+          is_available: boolean | null
+          last_price_update: string | null
+          last_stock_update: string | null
+          original_price: number | null
+          price: number
+          product_id: string
+          size: string
+          sku: string
+          stock: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_available?: boolean | null
+          last_price_update?: string | null
+          last_stock_update?: string | null
+          original_price?: number | null
+          price: number
+          product_id: string
+          size: string
+          sku: string
+          stock?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          discount_percent?: number | null
+          id?: string
+          is_available?: boolean | null
+          last_price_update?: string | null
+          last_stock_update?: string | null
+          original_price?: number | null
+          price?: number
+          product_id?: string
+          size?: string
+          sku?: string
+          stock?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string | null
+          cuisine: string | null
+          description: string | null
+          dietary_tags: string[] | null
+          id: string
+          image_url: string | null
+          is_best_seller: boolean | null
+          name: string
+          sku: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string | null
+          cuisine?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_best_seller?: boolean | null
+          name: string
+          sku: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string | null
+          cuisine?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_best_seller?: boolean | null
+          name?: string
+          sku?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
