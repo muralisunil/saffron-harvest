@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -12,41 +12,48 @@ import DealsSection from "@/components/home/DealsSection";
 import QuickViewModal from "@/components/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { Product } from "@/types/product";
 import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ViewMode = "standard" | "cuisine" | "curated";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("standard");
-  const [recentlyViewed, setRecentlyViewed] = useState<typeof products>([]);
+  const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<Product[]>([]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const { products, isLoading } = useProducts({});
 
   const handleQuickView = (product: Product) => {
     setQuickViewProduct(product);
     setQuickViewOpen(true);
   };
 
+  // Load recently viewed products
   useEffect(() => {
+    if (products.length === 0) return;
+    
     const viewed = localStorage.getItem("recentlyViewed");
     if (viewed) {
       const viewedIds = JSON.parse(viewed);
       const viewedProducts = products.filter(p => viewedIds.includes(p.id)).slice(0, 8);
-      setRecentlyViewed(viewedProducts);
+      setRecentlyViewedProducts(viewedProducts);
     }
-  }, []);
+  }, [products]);
 
-  const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 8);
-  const specialDeals = products.filter((p) => p.discount).slice(0, 8);
-  const staples = products.filter(p => p.category === "Staples").slice(0, 4);
-  const snacks = products.filter(p => p.category === "Snacks").slice(0, 4);
-  const beverages = products.filter(p => p.category === "Beverages").slice(0, 4);
-  const instantFood = products.filter(p => p.category === "Instant Food").slice(0, 4);
+  // Derived product collections
+  const bestSellers = useMemo(() => products.filter((p) => p.isBestSeller).slice(0, 8), [products]);
+  const dealProducts = useMemo(() => products.filter((p) => p.discount).slice(0, 4), [products]);
+  const staples = useMemo(() => products.filter(p => p.category === "Staples").slice(0, 4), [products]);
+  const snacks = useMemo(() => products.filter(p => p.category === "Snacks").slice(0, 4), [products]);
+  const beverages = useMemo(() => products.filter(p => p.category === "Beverages").slice(0, 4), [products]);
+  const instantFood = useMemo(() => products.filter(p => p.category === "Instant Food").slice(0, 4), [products]);
   
   // Cuisine-based groupings
-  const cuisineGroups = {
+  const cuisineGroups = useMemo(() => ({
     "North Indian Essentials": products.filter(p => 
       ["Staples", "Spices", "Dairy"].includes(p.category)
     ).slice(0, 8),
@@ -59,10 +66,10 @@ const Index = () => {
     "Beverage Station": products.filter(p => 
       p.category === "Beverages"
     ).slice(0, 8),
-  };
+  }), [products]);
 
   // Curated collections
-  const curatedCollections = {
+  const curatedCollections = useMemo(() => ({
     "Quick Meals": products.filter(p => 
       p.category === "Instant Food"
     ).slice(0, 8),
@@ -75,7 +82,15 @@ const Index = () => {
     "Daily Needs": products.filter(p => 
       ["Dairy", "Beverages"].includes(p.category)
     ).slice(0, 8),
-  };
+  }), [products]);
+
+  const ProductSkeleton = () => (
+    <div className="space-y-4">
+      <Skeleton className="aspect-square w-full rounded-xl" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -101,7 +116,7 @@ const Index = () => {
 
         {/* Today's Hot Deals with Countdown Timers */}
         <section className="container">
-          <DealsSection onQuickView={handleQuickView} />
+          <DealsSection dealProducts={dealProducts} onQuickView={handleQuickView} isLoading={isLoading} />
         </section>
 
         {/* View Mode Toggle Section */}
@@ -146,11 +161,17 @@ const Index = () => {
               >
                 <div>
                   <h3 className="text-xl font-bold mb-6 text-foreground">Best Sellers</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                    {bestSellers.map((product, index) => (
-                      <ProductCard key={product.id} product={product} index={index} />
-                    ))}
-                  </div>
+                  {isLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                      {[...Array(8)].map((_, i) => <ProductSkeleton key={i} />)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                      {bestSellers.map((product, index) => (
+                        <ProductCard key={product.id} product={product} index={index} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -242,28 +263,36 @@ const Index = () => {
         </section>
 
         {/* Recently Viewed */}
-        {recentlyViewed.length > 0 && (
+        {recentlyViewedProducts.length > 0 && (
           <section className="container">
-            <ProductSection title="Your Recently Viewed" products={recentlyViewed} showViewAll={false} />
+            <ProductSection title="Your Recently Viewed" products={recentlyViewedProducts} showViewAll={false} />
           </section>
         )}
 
         {/* Category Sections */}
-        <section className="container">
-          <ProductSection title="Staples & Grains" products={staples} />
-        </section>
+        {!isLoading && staples.length > 0 && (
+          <section className="container">
+            <ProductSection title="Staples & Grains" products={staples} />
+          </section>
+        )}
 
-        <section className="container">
-          <ProductSection title="Snacks & Treats" products={snacks} />
-        </section>
+        {!isLoading && snacks.length > 0 && (
+          <section className="container">
+            <ProductSection title="Snacks & Treats" products={snacks} />
+          </section>
+        )}
 
-        <section className="container">
-          <ProductSection title="Beverages" products={beverages} />
-        </section>
+        {!isLoading && beverages.length > 0 && (
+          <section className="container">
+            <ProductSection title="Beverages" products={beverages} />
+          </section>
+        )}
 
-        <section className="container pb-16">
-          <ProductSection title="Quick & Easy Meals" products={instantFood} />
-        </section>
+        {!isLoading && instantFood.length > 0 && (
+          <section className="container pb-16">
+            <ProductSection title="Quick & Easy Meals" products={instantFood} />
+          </section>
+        )}
       </main>
 
       <Footer />

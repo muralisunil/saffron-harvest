@@ -5,12 +5,13 @@ import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { products, categories } from "@/data/products";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useProducts } from "@/hooks/useProducts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Products = () => {
   const [searchParams] = useSearchParams();
@@ -20,13 +21,30 @@ const Products = () => {
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
 
+  const { 
+    products: filteredProducts, 
+    isLoading, 
+    categories, 
+    allBrands, 
+    allCuisines, 
+    allDietaryTags 
+  } = useProducts({
+    category: selectedCategory,
+    brands: selectedBrands.length > 0 ? selectedBrands : undefined,
+    cuisines: selectedCuisines.length > 0 ? selectedCuisines : undefined,
+    dietaryTags: selectedDietaryTags.length > 0 ? selectedDietaryTags : undefined,
+    inStockOnly
+  });
+
+  // Get all products for recommendations (no filters)
+  const { products: allProducts } = useProducts({});
+
   // Apply filters from URL params on mount
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     const brandParam = searchParams.get('brand');
     
-    if (categoryParam) {
-      // Find matching category (case-insensitive)
+    if (categoryParam && categories.length > 0) {
       const matchingCategory = categories.find(
         c => c.toLowerCase() === categoryParam.toLowerCase()
       );
@@ -35,9 +53,7 @@ const Products = () => {
       }
     }
     
-    if (brandParam) {
-      // Find matching brand (case-insensitive)
-      const allBrands = Array.from(new Set(products.map((p) => p.brand)));
+    if (brandParam && allBrands.length > 0) {
       const matchingBrand = allBrands.find(
         b => b.toLowerCase() === brandParam.toLowerCase()
       );
@@ -45,30 +61,14 @@ const Products = () => {
         setSelectedBrands([matchingBrand]);
       }
     }
-  }, [searchParams]);
-
-  const allBrands = Array.from(new Set(products.map((p) => p.brand))).sort();
-  const allDietaryTags = Array.from(new Set(products.flatMap((p) => p.dietaryTags || []))).sort();
-  const allCuisines = Array.from(new Set(products.map((p) => p.cuisine).filter(Boolean))).sort();
-
-  const filteredProducts = products.filter((p) => {
-    if (selectedCategory !== "All" && p.category !== selectedCategory) return false;
-    if (selectedBrands.length > 0 && !selectedBrands.includes(p.brand)) return false;
-    if (selectedCuisines.length > 0 && (!p.cuisine || !selectedCuisines.includes(p.cuisine))) return false;
-    if (selectedDietaryTags.length > 0) {
-      const hasMatchingTag = selectedDietaryTags.some((tag) => p.dietaryTags?.includes(tag));
-      if (!hasMatchingTag) return false;
-    }
-    if (inStockOnly && !p.variants.some((v) => v.stock > 0)) return false;
-    return true;
-  });
+  }, [searchParams, categories, allBrands]);
 
   // Simple rule-based recommendations
   const getRecommendations = () => {
-    if (filteredProducts.length === 0) return [];
+    if (allProducts.length === 0) return [];
     
     // Recommend best sellers first
-    const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 5);
+    const bestSellers = allProducts.filter((p) => p.isBestSeller).slice(0, 5);
     
     // Add complementary products based on category
     const categoryMap: Record<string, string[]> = {
@@ -78,7 +78,7 @@ const Products = () => {
     };
     
     const complementaryProducts = selectedCategory !== "All" && categoryMap[selectedCategory]
-      ? products.filter((p) => categoryMap[selectedCategory].includes(p.category)).slice(0, 3)
+      ? allProducts.filter((p) => categoryMap[selectedCategory].includes(p.category)).slice(0, 3)
       : [];
     
     return [...new Set([...bestSellers, ...complementaryProducts])].slice(0, 6);
@@ -143,23 +143,25 @@ const Products = () => {
       )}
 
       {/* Brand Filter */}
-      <div>
-        <h3 className="font-semibold mb-3">Brand</h3>
-        <div className="space-y-2">
-          {allBrands.map((brand) => (
-            <div key={brand} className="flex items-center space-x-2">
-              <Checkbox
-                id={`brand-${brand}`}
-                checked={selectedBrands.includes(brand)}
-                onCheckedChange={() => toggleBrand(brand)}
-              />
-              <Label htmlFor={`brand-${brand}`} className="cursor-pointer">
-                {brand}
-              </Label>
-            </div>
-          ))}
+      {allBrands.length > 0 && (
+        <div>
+          <h3 className="font-semibold mb-3">Brand</h3>
+          <div className="space-y-2">
+            {allBrands.map((brand) => (
+              <div key={brand} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`brand-${brand}`}
+                  checked={selectedBrands.includes(brand)}
+                  onCheckedChange={() => toggleBrand(brand)}
+                />
+                <Label htmlFor={`brand-${brand}`} className="cursor-pointer">
+                  {brand}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Cuisine Filter */}
       {allCuisines.length > 0 && (
@@ -203,6 +205,15 @@ const Products = () => {
           Clear All Filters
         </Button>
       )}
+    </div>
+  );
+
+  const ProductSkeleton = () => (
+    <div className="space-y-4">
+      <Skeleton className="aspect-square w-full rounded-xl" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-10 w-full" />
     </div>
   );
 
@@ -276,7 +287,7 @@ const Products = () => {
           {/* Products Grid */}
           <div className="flex-1">
             {/* Recommendations */}
-            {recommendations.length > 0 && (
+            {!isLoading && recommendations.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-2xl font-display font-bold mb-4">Recommended for You</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -290,17 +301,25 @@ const Products = () => {
             {/* All Products */}
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">
-                All Products ({filteredProducts.length})
+                {isLoading ? 'Loading...' : `All Products (${filteredProducts.length})`}
               </h2>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
 
-            {filteredProducts.length === 0 && (
+            {!isLoading && filteredProducts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-muted-foreground">
                   No products found matching your filters

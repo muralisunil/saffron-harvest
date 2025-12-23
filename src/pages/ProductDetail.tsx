@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Award } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Award, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,19 +8,25 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/context/CartContext";
-import { products } from "@/data/products";
+import { useProduct } from "@/hooks/useProducts";
 import { ProductVariant } from "@/types/product";
 import AddToListButton from "@/components/AddToListButton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const { product, isLoading, error } = useProduct(id);
   const { addItem } = useCart();
 
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
-    product?.variants[0]!
-  );
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
+
+  // Set initial variant when product loads
+  useEffect(() => {
+    if (product && product.variants.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    }
+  }, [product]);
 
   // Track recently viewed products
   useEffect(() => {
@@ -32,7 +38,33 @@ const ProductDetail = () => {
     }
   }, [product]);
 
-  if (!product) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container py-8">
+          <Skeleton className="h-10 w-40 mb-6" />
+          <div className="grid md:grid-cols-2 gap-8">
+            <Skeleton className="aspect-square rounded-xl" />
+            <div className="space-y-6">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-12 w-1/2" />
+              <div className="grid grid-cols-2 gap-3">
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
+              </div>
+              <Skeleton className="h-14 w-full" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!product || error) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -45,6 +77,10 @@ const ProductDetail = () => {
         <Footer />
       </div>
     );
+  }
+
+  if (!selectedVariant) {
+    return null;
   }
 
   const handleAddToCart = () => {
@@ -139,9 +175,14 @@ const ProductDetail = () => {
                         <span className="text-sm text-muted-foreground">
                           ₹{variant.price}
                         </span>
-                        {variant.stock < 10 && (
+                        {variant.stock < 10 && variant.stock > 0 && (
                           <Badge variant="outline" className="mt-2 text-xs">
                             Only {variant.stock} left
+                          </Badge>
+                        )}
+                        {variant.stock === 0 && (
+                          <Badge variant="destructive" className="mt-2 text-xs">
+                            Out of Stock
                           </Badge>
                         )}
                       </Label>
@@ -171,6 +212,7 @@ const ProductDetail = () => {
                   onClick={() =>
                     setQuantity(Math.min(selectedVariant.stock, quantity + 1))
                   }
+                  disabled={quantity >= selectedVariant.stock}
                 >
                   +
                 </Button>
@@ -204,6 +246,24 @@ const ProductDetail = () => {
                 <span className="text-muted-foreground">Brand</span>
                 <span className="font-medium">{product.brand}</span>
               </div>
+              {product.cuisine && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Cuisine</span>
+                  <span className="font-medium">{product.cuisine}</span>
+                </div>
+              )}
+              {product.dietaryTags && product.dietaryTags.length > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Dietary</span>
+                  <div className="flex gap-1">
+                    {product.dietaryTags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Stock Status</span>
                 <Badge variant={selectedVariant.stock > 0 ? "default" : "destructive"}>
