@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import RecoveryEmailSettings from "@/components/admin/RecoveryEmailSettings";
 import { OfferExperimentManager } from "@/components/admin/OfferExperimentManager";
 import { ProductManager } from "@/components/admin/ProductManager";
+import { OrderManager } from "@/components/admin/OrderManager";
 const Admin = () => {
   const [file, setFile] = useState<File | null>(null);
 
@@ -136,13 +137,18 @@ const Admin = () => {
         </div>
 
         {/* Tabs for different admin sections */}
-        <Tabs defaultValue="products" className="space-y-6">
+        <Tabs defaultValue="orders" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="import">Import/Export</TabsTrigger>
             <TabsTrigger value="emails">Recovery Emails</TabsTrigger>
             <TabsTrigger value="experiments">Experiments</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="orders">
+            <OrderManager />
+          </TabsContent>
 
           <TabsContent value="products">
             <ProductManager />
