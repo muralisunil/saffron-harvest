@@ -154,11 +154,18 @@ serve(async (req) => {
       .eq("id", orderId);
 
     // Update order items if item cancellation
+    let cancelledItemDetails: Array<{
+      productName: string;
+      variantName?: string;
+      quantity: number;
+      refundAmount: number;
+    }> = [];
+
     if (refundType === "item_cancellation" && cancelledItems) {
       for (const item of cancelledItems) {
         const { data: existingItem } = await supabaseClient
           .from("order_items")
-          .select("cancelled_quantity, refunded_amount")
+          .select("cancelled_quantity, refunded_amount, product_name, variant_name")
           .eq("id", item.orderItemId)
           .single();
 
@@ -170,11 +177,60 @@ serve(async (req) => {
               refunded_amount: Number(existingItem.refunded_amount || 0) + item.refundAmount,
             })
             .eq("id", item.orderItemId);
+
+          cancelledItemDetails.push({
+            productName: existingItem.product_name,
+            variantName: existingItem.variant_name || undefined,
+            quantity: item.quantity,
+            refundAmount: item.refundAmount,
+          });
         }
       }
     }
 
     console.log("[PROCESS-REFUND] Refund completed successfully");
+
+    // Send refund notification email if customer email exists
+    if (order.shipping_email) {
+      const isFullyCancelled = refundType === "full" || isFullyRefunded;
+      const remainingTotal = Number(order.total_amount) - newRefundTotal;
+
+      console.log("[PROCESS-REFUND] Sending refund email to:", order.shipping_email);
+
+      try {
+        const emailResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-refund-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+            },
+            body: JSON.stringify({
+              orderId,
+              customerEmail: order.shipping_email,
+              customerName: order.shipping_name || "Customer",
+              orderNumber: order.order_number,
+              refundType,
+              refundAmount,
+              reason: reason || undefined,
+              cancelledItems: cancelledItemDetails.length > 0 ? cancelledItemDetails : undefined,
+              isFullyCancelled,
+              remainingTotal,
+            }),
+          }
+        );
+
+        if (!emailResponse.ok) {
+          console.error("[PROCESS-REFUND] Failed to send email:", await emailResponse.text());
+        } else {
+          console.log("[PROCESS-REFUND] Refund email sent successfully");
+        }
+      } catch (emailError) {
+        console.error("[PROCESS-REFUND] Email sending error:", emailError);
+        // Don't fail the refund if email fails
+      }
+    }
 
     return new Response(
       JSON.stringify({
