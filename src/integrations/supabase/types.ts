@@ -921,6 +921,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          cancelled_quantity: number | null
           created_at: string
           id: string
           order_id: string
@@ -928,12 +929,14 @@ export type Database = {
           product_name: string
           properties: Json | null
           quantity: number
+          refunded_amount: number | null
           total_price: number
           unit_price: number
           variant_id: string | null
           variant_name: string | null
         }
         Insert: {
+          cancelled_quantity?: number | null
           created_at?: string
           id?: string
           order_id: string
@@ -941,12 +944,14 @@ export type Database = {
           product_name: string
           properties?: Json | null
           quantity?: number
+          refunded_amount?: number | null
           total_price: number
           unit_price: number
           variant_id?: string | null
           variant_name?: string | null
         }
         Update: {
+          cancelled_quantity?: number | null
           created_at?: string
           id?: string
           order_id?: string
@@ -954,6 +959,7 @@ export type Database = {
           product_name?: string
           properties?: Json | null
           quantity?: number
+          refunded_amount?: number | null
           total_price?: number
           unit_price?: number
           variant_id?: string | null
@@ -962,6 +968,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          order_id: string
+          reason: string | null
+          refund_type: string
+          refunded_items: Json | null
+          stripe_refund_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          order_id: string
+          reason?: string | null
+          refund_type: string
+          refunded_items?: Json | null
+          stripe_refund_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          order_id?: string
+          reason?: string | null
+          refund_type?: string
+          refunded_items?: Json | null
+          stripe_refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_refunds_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -983,6 +1033,7 @@ export type Database = {
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           properties: Json | null
+          refund_amount: number | null
           refunded_at: string | null
           shipped_at: string | null
           shipping_address: string | null
@@ -1015,6 +1066,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           properties?: Json | null
+          refund_amount?: number | null
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: string | null
@@ -1047,6 +1099,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           properties?: Json | null
+          refund_amount?: number | null
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: string | null
