@@ -15,6 +15,7 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
 import Lists from "./pages/Lists";
+import Rewards from "./pages/Rewards";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/lists" element={<Lists />} />
+                <Route path="/rewards" element={<Rewards />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
