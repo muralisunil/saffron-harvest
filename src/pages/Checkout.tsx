@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,33 @@ import { OrderDetails } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCartSession } from "@/hooks/useCartSession";
+import { RewardsRedemption } from "@/components/rewards/RewardsRedemption";
+import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
 import { Loader2 } from "lucide-react";
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { items, getCartTotal, clearCart } = useCart();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [rewardDiscount, setRewardDiscount] = useState(0);
+  const [selectedRewardTier, setSelectedRewardTier] = useState<string | null>(null);
+  const { tiers } = useLoyaltyPoints(userId);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
 
   const subtotal = getCartTotal();
   const shipping = subtotal > 500 ? 0 : 50;
-  const total = subtotal + shipping;
+  const totalAfterRewards = Math.max(0, subtotal - rewardDiscount);
+  const total = totalAfterRewards + shipping;
 
   const { syncCartSession, markCheckoutStarted, markCheckoutAbandoned, markCheckoutCompleted } = 
     useCartSession(items, total);
@@ -36,6 +52,11 @@ const Checkout = () => {
     state: "",
     pincode: "",
   });
+
+  const handleRewardRedeem = (discount: number, tierId: string) => {
+    setRewardDiscount(discount);
+    setSelectedRewardTier(tierId || null);
+  };
 
   // Track checkout started and sync cart session on mount
   useEffect(() => {
@@ -76,11 +97,21 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      // Build reward redemption data if applicable
+      const selectedTier = selectedRewardTier ? tiers.find(t => t.id === selectedRewardTier) : null;
+      const rewardRedemption = selectedTier ? {
+        tier_id: selectedTier.id,
+        points_required: selectedTier.points_required,
+        discount_amount: selectedTier.discount_amount,
+        min_purchase_amount: selectedTier.min_purchase_amount
+      } : null;
+
       // Call Stripe checkout edge function
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
           cartItems: items,
           customerInfo: formData,
+          rewardRedemption,
         },
       });
 
@@ -90,7 +121,7 @@ const Checkout = () => {
         // Mark checkout as completed before redirecting
         await markCheckoutCompleted();
 
-        // Save order info before redirecting
+        // Save order info before redirecting (include reward info)
         const order: OrderDetails = {
           orderId: `ORD${Date.now()}`,
           items,
@@ -107,6 +138,11 @@ const Checkout = () => {
           orderDate: new Date(),
         };
         localStorage.setItem("pendingOrder", JSON.stringify(order));
+        localStorage.setItem("pendingReward", JSON.stringify({ 
+          rewardDiscount, 
+          selectedRewardTier,
+          sessionId: data.sessionId 
+        }));
         
         // Redirect to Stripe Checkout
         window.location.href = data.url;
@@ -231,7 +267,15 @@ const Checkout = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-4">
+              {/* Rewards Redemption */}
+              <RewardsRedemption
+                userId={userId}
+                cartSubtotal={subtotal}
+                onRedeem={handleRewardRedeem}
+                selectedTierId={selectedRewardTier}
+              />
+
               <Card className="sticky top-20">
                 <CardHeader>
                   <CardTitle>Order Summary</CardTitle>
@@ -266,6 +310,12 @@ const Checkout = () => {
                       <span className="text-muted-foreground">Subtotal</span>
                       <span className="font-medium">₹{subtotal}</span>
                     </div>
+                    {rewardDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Rewards Discount</span>
+                        <span className="font-medium">-₹{rewardDiscount}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping</span>
                       <span className="font-medium">

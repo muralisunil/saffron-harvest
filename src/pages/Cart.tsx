@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import Header from "@/components/Header";
@@ -9,10 +10,28 @@ import { useCart } from "@/context/CartContext";
 import { useCartDiscounts } from "@/hooks/useOffers";
 import CartDiscountDisplay from "@/components/cart/CartDiscountDisplay";
 import PotentialSavingsDisplay from "@/components/cart/PotentialSavingsDisplay";
+import { RewardsRedemption } from "@/components/rewards/RewardsRedemption";
+import { supabase } from "@/integrations/supabase/client";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getCartTotal } = useCart();
   const { totalDiscount, discountedSubtotal, applicablePlans, isLoading, rejectionLogs, potentialSavings } = useCartDiscounts();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [rewardDiscount, setRewardDiscount] = useState(0);
+  const [selectedRewardTier, setSelectedRewardTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
+
+  const handleRewardRedeem = (discount: number, tierId: string) => {
+    setRewardDiscount(discount);
+    setSelectedRewardTier(tierId || null);
+  };
 
   if (items.length === 0) {
     return (
@@ -40,7 +59,8 @@ const Cart = () => {
   const subtotal = getCartTotal();
   const shipping = subtotal > 500 ? 0 : 50;
   const finalSubtotal = totalDiscount > 0 ? discountedSubtotal : subtotal;
-  const total = finalSubtotal + shipping;
+  const totalAfterRewards = Math.max(0, finalSubtotal - rewardDiscount);
+  const total = totalAfterRewards + shipping;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -145,6 +165,14 @@ const Cart = () => {
               isLoading={isLoading}
             />
 
+            {/* Rewards Redemption */}
+            <RewardsRedemption
+              userId={userId}
+              cartSubtotal={finalSubtotal}
+              onRedeem={handleRewardRedeem}
+              selectedTierId={selectedRewardTier}
+            />
+
             <Card className="sticky top-20">
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-xl font-display font-bold">Order Summary</h2>
@@ -156,8 +184,14 @@ const Cart = () => {
                   </div>
                   {totalDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount</span>
+                      <span>Offer Discount</span>
                       <span className="font-medium">-₹{totalDiscount.toFixed(0)}</span>
+                    </div>
+                  )}
+                  {rewardDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Rewards Discount</span>
+                      <span className="font-medium">-₹{rewardDiscount}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">

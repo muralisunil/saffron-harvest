@@ -568,6 +568,71 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_redemption_tiers: {
+        Row: {
+          created_at: string
+          discount_amount: number
+          id: string
+          is_active: boolean
+          min_purchase_amount: number
+          points_required: number
+        }
+        Insert: {
+          created_at?: string
+          discount_amount: number
+          id?: string
+          is_active?: boolean
+          min_purchase_amount: number
+          points_required: number
+        }
+        Update: {
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          is_active?: boolean
+          min_purchase_amount?: number
+          points_required?: number
+        }
+        Relationships: []
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string | null
+          points: number
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points: number
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          points?: number
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_experiment_assignments: {
         Row: {
           assigned_at: string
@@ -1337,6 +1402,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_loyalty_points: {
+        Row: {
+          created_at: string
+          id: string
+          lifetime_points: number
+          points_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          points_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lifetime_points?: number
+          points_balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

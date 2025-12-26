@@ -21,8 +21,8 @@ serve(async (req) => {
   try {
     console.log("Creating checkout session...");
     
-    // Get cart items and customer info from request
-    const { cartItems, customerInfo } = await req.json();
+    // Get cart items, customer info, and reward redemption from request
+    const { cartItems, customerInfo, rewardRedemption } = await req.json();
     
     if (!cartItems || cartItems.length === 0) {
       throw new Error("Cart is empty");
@@ -38,6 +38,7 @@ serve(async (req) => {
     // Check if user is authenticated (optional for guest checkout)
     let userEmail = customerInfo?.email;
     let customerId;
+    let userId: string | null = null;
     
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
@@ -45,18 +46,26 @@ serve(async (req) => {
       const { data } = await supabaseClient.auth.getUser(token);
       const user = data.user;
       
-      if (user?.email) {
-        userEmail = user.email;
-        console.log(`Authenticated user: ${userEmail}`);
-        
-        // Check if customer exists in Stripe
-        const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-        if (customers.data.length > 0) {
-          customerId = customers.data[0].id;
-          console.log(`Found existing Stripe customer: ${customerId}`);
+      if (user) {
+        userId = user.id;
+        if (user.email) {
+          userEmail = user.email;
+          console.log(`Authenticated user: ${userEmail}`);
+          
+          // Check if customer exists in Stripe
+          const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+          if (customers.data.length > 0) {
+            customerId = customers.data[0].id;
+            console.log(`Found existing Stripe customer: ${customerId}`);
+          }
         }
       }
     }
+
+    // Calculate subtotal
+    const cartSubtotal = cartItems.reduce((sum: number, item: any) => 
+      sum + (item.variant.price * item.quantity), 0
+    );
 
     // Create line items from cart
     const lineItems = cartItems.map((item: any) => ({
@@ -85,6 +94,23 @@ serve(async (req) => {
       quantity: 1,
     });
 
+    // Create discounts array for Stripe
+    const discounts: any[] = [];
+    
+    // Handle reward redemption discount
+    if (rewardRedemption && rewardRedemption.discount_amount > 0 && userId) {
+      // Create a coupon for the reward discount
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(rewardRedemption.discount_amount * 100),
+        currency: 'usd',
+        name: `Rewards Redemption - ${rewardRedemption.points_required} points`,
+        duration: 'once',
+      });
+      
+      discounts.push({ coupon: coupon.id });
+      console.log(`Applied reward discount: $${rewardRedemption.discount_amount}`);
+    }
+
     console.log("Creating Stripe checkout session...");
 
     // Create checkout session
@@ -93,10 +119,14 @@ serve(async (req) => {
       customer_email: customerId ? undefined : userEmail,
       line_items: lineItems,
       mode: "payment",
+      discounts: discounts.length > 0 ? discounts : undefined,
       success_url: `${req.headers.get("origin")}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/checkout`,
       metadata: {
         customerInfo: JSON.stringify(customerInfo),
+        userId: userId || '',
+        rewardRedemption: rewardRedemption ? JSON.stringify(rewardRedemption) : '',
+        cartSubtotal: cartSubtotal.toString(),
       },
     });
 
